@@ -13,7 +13,9 @@ pub enum NanoDBError {
     RwLockReadError,
     #[error("RwLock Write error")]
     RwLockWriteError,
-    // Vasic error from anyhow
+    #[error("Not array")]
+    NotAnArray,
+    // Basic error from anyhow
     #[error("Error: {0}")]
     Anyhow(#[from] anyhow::Error),
 }

@@ -30,6 +30,14 @@ impl NanoDB {
         })
     }
 
+    /// Index into a JSON array or map. A string index can be used to access a
+    /// value in a map, and a usize index can be used to access an element of an
+    /// array.
+    ///
+    /// Returns `None` if the type of `self` does not match the type of the
+    /// index, for example if the index is a string and `self` is an array or a
+    /// number. Also returns `None` if the given key does not exist in the map
+    /// or the given index is not within the bounds of the array.
     pub fn get<T: for<'de> Deserialize<'de>>(&self, key: &str) -> Result<T, NanoDBError> {
         let data = self.data.read().map_err(|_| NanoDBError::RwLockReadError)?;
         let value = data
@@ -49,6 +57,29 @@ impl NanoDB {
             .map_err(|_| NanoDBError::RwLockReadError)?;
         let value = serde_json::to_value(value)?;
         data.as_object_mut().unwrap().insert(key.to_string(), value);
+        Ok(())
+    }
+
+    /// Push a value to an array
+    /// If the key does not map into an array, an error is returned
+    /// If the key does not exist, an error is returned
+    /// If the value cannot be serialized, an error is returned
+    /// If the value is successfully pushed, Ok is returned
+    pub fn array_push<T: Serialize>(&mut self, key: &str, value: T) -> Result<(), NanoDBError> {
+        let mut data = self
+            .data
+            .write()
+            .map_err(|_| NanoDBError::RwLockReadError)?;
+        let value = serde_json::to_value(value)?;
+
+        let x = data.as_object_mut().unwrap().get_mut(key).unwrap();
+
+        if let Some(v) = x.as_array_mut() {
+            v.push(value);
+        } else {
+            return Err(NanoDBError::NotAnArray);
+        }
+
         Ok(())
     }
 

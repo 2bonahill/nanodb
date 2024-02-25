@@ -12,11 +12,18 @@ async fn main() -> Result<()> {
     db.write()?;
 
     // Set and get a vector
-    db.insert("items2", vec!["apple", "banana", "orange"])?;
+    db.insert("items3", vec!["apple", "banana", "orange", "avocado"])?;
     db.write()?;
 
-    let items: Vec<Q> = db.get("quantities")?;
-    dbg!(&items);
+    db.array_push("items3", "grapes")?;
+    db.array_push("items3", "strawberries")?;
+    db.write()?;
+
+    let mut items: Vec<String> = db.get("items2")?;
+    items.push("grapes".to_string());
+    items.push("strawberries".to_string());
+    db.insert("items2", items)?;
+    db.write()?;
 
     Ok(())
 }
