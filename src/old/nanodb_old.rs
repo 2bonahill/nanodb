@@ -1,15 +1,12 @@
 use anyhow::anyhow;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{
     path::PathBuf,
     sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
-use crate::{
-    error::NanoDBError,
-    value_wrapper::{PathElement, ValueWrapper},
-};
+use crate::error::NanoDBError;
 
 #[derive(Debug)]
 pub struct NanoDB {
@@ -41,15 +38,12 @@ impl NanoDB {
     /// index, for example if the index is a string and `self` is an array or a
     /// number. Also returns `None` if the given key does not exist in the map
     /// or the given index is not within the bounds of the array.
-    pub fn get(&self, key: &str) -> Result<ValueWrapper, NanoDBError> {
+    pub fn get<T: for<'de> Deserialize<'de>>(&self, key: &str) -> Result<T, NanoDBError> {
         let data = self.data.read().map_err(|_| NanoDBError::RwLockReadError)?;
         let value = data
             .get(key)
             .ok_or_else(|| anyhow!("Key not found: {}", key))?;
-        Ok(ValueWrapper {
-            inner: value.clone(),
-            path: vec![PathElement::Key(key.to_string())],
-        })
+        serde_json::from_value(value.clone()).map_err(Into::into)
     }
 
     /// Push a value to an array
