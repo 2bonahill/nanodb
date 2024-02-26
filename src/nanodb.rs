@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{
     path::PathBuf,
-    sync::{Arc, RwLock},
+    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
 use crate::error::NanoDBError;
@@ -44,6 +44,79 @@ impl NanoDB {
             .get(key)
             .ok_or_else(|| anyhow!("Key not found: {}", key))?;
         serde_json::from_value(value.clone()).map_err(Into::into)
+    }
+
+    /// Applies a modification function to the value associated with the given key.
+    ///
+    /// The closure `f` is applied to the mutable reference of the value if the key exists.
+    ///
+    /// Returns `Result<(), NanoDBError>` indicating whether the operation was successful.
+    pub fn modify<F>(&mut self, key: &str, f: F) -> Result<(), NanoDBError>
+    where
+        F: FnOnce(&mut serde_json::Value) -> Result<(), NanoDBError>,
+    {
+        // let mut data = self
+        //     .data
+        //     .write()
+        //     .map_err(|_| NanoDBError::RwLockWriteError)?;
+
+        let mut data = self._write_lock()?;
+
+        let object = data.as_object_mut().ok_or(NanoDBError::NotAnObject)?;
+
+        let value = object
+            .get_mut(key)
+            .ok_or_else(|| anyhow!("Key not found: {}", key))?;
+
+        // Apply the modification function to the mutable reference of the value
+        f(value)?;
+
+        Ok(())
+    }
+
+    /// Pushes a value to a nested array specified by a string path.
+    /// The path is a slice of strings, representing a sequence of keys (and indices represented as strings for arrays).
+    pub fn nested_array_push<T, S>(&mut self, path: &[S], value: T) -> Result<(), NanoDBError>
+    where
+        T: Serialize,
+        S: Into<String> + Clone,
+    {
+        let mut data = self
+            .data
+            .write()
+            .map_err(|_| NanoDBError::RwLockReadError)?;
+
+        // Navigate to the target array using the path.
+        let mut current = &mut *data;
+        for p in path {
+            let key = p.clone().into();
+
+            // Attempt to treat the current value as an object and navigate to the next key.
+            if current.is_object() {
+                current = current
+                    .get_mut(&key)
+                    .ok_or_else(|| anyhow!("Key not found: {}", key))?;
+            } else if let Ok(idx) = key.parse::<usize>() {
+                // If the current value is not an object, try to parse the key as an array index.
+                if !current.is_array() {
+                    return Err(NanoDBError::NotAnArray);
+                }
+                let arr = current.as_array_mut().ok_or(NanoDBError::NotAnArray)?;
+                current = arr.get_mut(idx).ok_or(NanoDBError::IndexOutOfBounds)?;
+            } else {
+                // If the key is not a valid index and we're not currently at an object, it's an error.
+                return Err(NanoDBError::InvalidJSONPath);
+            }
+        }
+
+        // Now `current` should be the target array.
+        if let Some(arr) = current.as_array_mut() {
+            let serialized_value = serde_json::to_value(value)?;
+            arr.push(serialized_value);
+            Ok(())
+        } else {
+            Err(NanoDBError::NotAnArray)
+        }
     }
 
     /// Inserts a key-value pair into the JSON object.
@@ -103,5 +176,13 @@ impl NanoDB {
         let contents = serde_json::to_string_pretty(&*data_guard)?;
         tokio::fs::write(&self.path, contents).await?;
         Ok(())
+    }
+
+    fn _write_lock(&mut self) -> Result<RwLockWriteGuard<'_, Value>, NanoDBError> {
+        self.data.write().map_err(|_| NanoDBError::RwLockWriteError)
+    }
+
+    fn _read_lock(&mut self) -> Result<RwLockReadGuard<'_, Value>, NanoDBError> {
+        self.data.read().map_err(|_| NanoDBError::RwLockReadError)
     }
 }

@@ -15,6 +15,12 @@ pub enum NanoDBError {
     RwLockWriteError,
     #[error("Not array")]
     NotAnArray,
+    #[error("Not an object")]
+    NotAnObject,
+    #[error("Index out of bounds")]
+    IndexOutOfBounds,
+    #[error("Invalid JSON path")]
+    InvalidJSONPath,
     // Basic error from anyhow
     #[error("Error: {0}")]
     Anyhow(#[from] anyhow::Error),
