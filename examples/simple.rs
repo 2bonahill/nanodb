@@ -1,34 +1,31 @@
 use anyhow::Result;
-use nanodb::nanodb::NanoDB;
+use nanodb::{nanodb::NanoDB, value_tree::ValueTree};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{Map, Value};
 
 #[allow(dead_code)]
 #[tokio::main]
 async fn main() -> Result<()> {
     let mut db = NanoDB::new("data.json")?;
 
-    // Set and get a string
+    // Setting
     db.insert("age", 40)?;
     db.insert("email", "johndoe@gmail.com")?;
-
-    // Set and get a vector
     db.insert("fruits", vec!["apple", "banana", "orange", "avocado"])?;
+    db.insert("hobbies", vec!["ski", "tennis", "fitness", "climbing"])?;
 
-    db.array_push("fruits", "grapes")?;
-    db.array_push("fruits", "strawberries")?;
-    db.nested_array_push(&["fruits"], "mango")?;
-    db.nested_array_push(&["address", "ziparray"], "666")?;
-    db.write()?;
+    // getters
+    let _city_name: String = db.get("address")?.get("city")?.into()?;
+    let _fruits_value_tree: ValueTree = db.get("fruits")?.at(1)?;
+    let _address: Map<String, Value> = db.get("address")?.into()?;
 
-    let mut items: Vec<String> = db.get("fruits")?.into()?;
-    items.push("grapes".to_string());
-    items.push("strawberries".to_string());
-    db.insert("fruits2", items)?;
-
-    db.array_for_each("numbers", |v| {
-        *v = Value::from(v.as_i64().unwrap() + 1i64);
-    })?;
+    // value trees
+    let mut numbers: ValueTree = db.get("numbers")?;
+    dbg!(&numbers);
+    let numbers = numbers.for_each(|v| {
+        *v = Value::from(v.as_i64().unwrap() * 2i64);
+    });
+    dbg!(&numbers);
 
     db.write()?;
 

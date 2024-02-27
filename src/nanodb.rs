@@ -8,7 +8,7 @@ use std::{
 
 use crate::{
     error::NanoDBError,
-    value_wrapper::{PathElement, ValueWrapper},
+    value_tree::{PathStep, ValueTree},
 };
 
 #[derive(Debug)]
@@ -41,76 +41,64 @@ impl NanoDB {
     /// index, for example if the index is a string and `self` is an array or a
     /// number. Also returns `None` if the given key does not exist in the map
     /// or the given index is not within the bounds of the array.
-    pub fn get(&self, key: &str) -> Result<ValueWrapper, NanoDBError> {
+    pub fn get(&self, key: &str) -> Result<ValueTree, NanoDBError> {
         let data = self.data.read().map_err(|_| NanoDBError::RwLockReadError)?;
         let value = data
             .get(key)
             .ok_or_else(|| anyhow!("Key not found: {}", key))?;
-        Ok(ValueWrapper {
+        Ok(ValueTree {
             inner: value.clone(),
-            path: vec![PathElement::Key(key.to_string())],
+            path: vec![PathStep::Key(key.to_string())],
         })
     }
 
-    /// Push a value to an array
-    /// If the key does not map into an array, an error is returned
-    /// If the key does not exist, an error is returned
-    /// If the value cannot be serialized, an error is returned
-    /// If the value is successfully pushed, Ok is returned
-    pub fn array_push<T: Serialize>(&mut self, key: &str, value: T) -> Result<(), NanoDBError> {
+    /// Inserts a key-value pair into the JSON object.
+    /// If the JSON object did not have this key present, None is returned.
+    /// If the JSON object did have this key present, the value is updated, and the old value is returned.
+    /// The key is not updated
+    pub fn insert<T: Serialize>(&mut self, key: &str, value: T) -> Result<(), NanoDBError> {
         let mut data = self
             .data
             .write()
             .map_err(|_| NanoDBError::RwLockReadError)?;
         let value = serde_json::to_value(value)?;
-
-        let x = data.as_object_mut().unwrap().get_mut(key).unwrap();
-
-        if let Some(v) = x.as_array_mut() {
-            v.push(value);
-        } else {
-            return Err(NanoDBError::NotAnArray);
-        }
-
+        data.as_object_mut().unwrap().insert(key.to_string(), value);
         Ok(())
     }
 
-    /// Applies a modification function to the array associated with the given key.
-    ///
-    /// The closure `f` is applied to the mutable reference of the value if the key exists.
-    ///
-    /// Returns `Result<(), NanoDBError>` indicating whether the operation was successful.
-    pub fn array_for_each<F>(&mut self, key: &str, f: F) -> Result<(), NanoDBError>
-    where
-        F: FnMut(&mut serde_json::Value),
-    {
-        // let mut data = self
-        //     .data
-        //     .write()
-        //     .map_err(|_| NanoDBError::RwLockWriteError)?;
-
-        let mut data = self._write_lock()?;
-
-        let object = data.as_object_mut().ok_or(NanoDBError::NotAnObject)?;
-
-        let value = object
-            .get_mut(key)
-            .ok_or_else(|| anyhow!("Key not found: {}", key))?;
-
-        if value.is_array() {
-            let value = value.as_array_mut().ok_or(NanoDBError::NotAnArray)?;
-            value.iter_mut().for_each(f);
-            // f(value)?;
-        } else {
-            return Err(NanoDBError::NotAnArray);
-        }
-
+    /// Write the current state of the JSON data to disk asynchronously
+    pub fn write(&mut self) -> Result<(), NanoDBError> {
+        let data_guard = self
+            .data
+            .write()
+            .map_err(|e| anyhow!("Failed to acquire lock: {}", e))?;
+        let contents = serde_json::to_string_pretty(&*data_guard)?;
+        std::fs::write(&self.path, contents)?;
         Ok(())
+    }
+
+    /// Write the current state of the JSON data to disk asynchronously
+    pub async fn write_async(&self) -> Result<(), NanoDBError> {
+        let data_guard = self
+            .data
+            .write()
+            .map_err(|e| anyhow!("Failed to acquire lock: {}", e))?;
+        let contents = serde_json::to_string_pretty(&*data_guard)?;
+        tokio::fs::write(&self.path, contents).await?;
+        Ok(())
+    }
+
+    fn _write_lock(&mut self) -> Result<RwLockWriteGuard<'_, Value>, NanoDBError> {
+        self.data.write().map_err(|_| NanoDBError::RwLockWriteError)
+    }
+
+    fn _read_lock(&mut self) -> Result<RwLockReadGuard<'_, Value>, NanoDBError> {
+        self.data.read().map_err(|_| NanoDBError::RwLockReadError)
     }
 
     /// Pushes a value to a nested array specified by a string path.
     /// The path is a slice of strings, representing a sequence of keys (and indices represented as strings for arrays).
-    pub fn nested_array_push<T, S>(&mut self, path: &[S], value: T) -> Result<(), NanoDBError>
+    pub fn merge<T, S>(&mut self, path: &[S], value: T) -> Result<(), NanoDBError>
     where
         T: Serialize,
         S: Into<String> + Clone,
@@ -154,50 +142,5 @@ impl NanoDB {
         } else {
             Err(NanoDBError::NotAnArray)
         }
-    }
-
-    /// Inserts a key-value pair into the JSON object.
-    /// If the JSON object did not have this key present, None is returned.
-    /// If the JSON object did have this key present, the value is updated, and the old value is returned.
-    /// The key is not updated
-    pub fn insert<T: Serialize>(&mut self, key: &str, value: T) -> Result<(), NanoDBError> {
-        let mut data = self
-            .data
-            .write()
-            .map_err(|_| NanoDBError::RwLockReadError)?;
-        let value = serde_json::to_value(value)?;
-        data.as_object_mut().unwrap().insert(key.to_string(), value);
-        Ok(())
-    }
-
-    /// Write the current state of the JSON data to disk asynchronously
-    pub fn write(&mut self) -> Result<(), NanoDBError> {
-        let data_guard = self
-            .data
-            .write()
-            .map_err(|e| anyhow!("Failed to acquire lock: {}", e))?;
-        dbg!(&data_guard);
-        let contents = serde_json::to_string_pretty(&*data_guard)?;
-        std::fs::write(&self.path, contents)?;
-        Ok(())
-    }
-
-    /// Write the current state of the JSON data to disk asynchronously
-    pub async fn write_async(&self) -> Result<(), NanoDBError> {
-        let data_guard = self
-            .data
-            .write()
-            .map_err(|e| anyhow!("Failed to acquire lock: {}", e))?;
-        let contents = serde_json::to_string_pretty(&*data_guard)?;
-        tokio::fs::write(&self.path, contents).await?;
-        Ok(())
-    }
-
-    fn _write_lock(&mut self) -> Result<RwLockWriteGuard<'_, Value>, NanoDBError> {
-        self.data.write().map_err(|_| NanoDBError::RwLockWriteError)
-    }
-
-    fn _read_lock(&mut self) -> Result<RwLockReadGuard<'_, Value>, NanoDBError> {
-        self.data.read().map_err(|_| NanoDBError::RwLockReadError)
     }
 }
