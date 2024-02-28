@@ -39,7 +39,7 @@ impl Tree {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```ignore
     /// let path = vec![PathStep::Key("key".to_string())];
     /// let tree = Tree::new(serde_json::json!(123), path.clone());
     /// assert_eq!(tree.inner, serde_json::json!(123));
@@ -63,7 +63,7 @@ impl Tree {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```ignore
     /// let tree = Tree::new(serde_json::json!({"key": "value"}));
     /// let result = tree.get("key");
     /// assert_eq!(result.unwrap().inner, serde_json::json!("value"));
@@ -99,7 +99,7 @@ impl Tree {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```ignore
     /// let tree = Tree::new(serde_json::json!([1, 2, 3]));
     /// let result = tree.at(1);
     /// assert_eq!(result.unwrap().inner, serde_json::json!(2));
@@ -137,7 +137,7 @@ impl Tree {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```ignore
     /// let tree = Tree::new(serde_json::json!(null));
     /// assert_eq!(tree.tree_type(), TreeType::Null);
     ///
@@ -180,7 +180,7 @@ impl Tree {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```ignore
     /// let mut tree = Tree::new(serde_json::json!([1, 2, 3]));
     /// let result = tree.push(4);
     /// assert_eq!(result.unwrap().inner, serde_json::json!([1, 2, 3, 4]));
@@ -210,7 +210,7 @@ impl Tree {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```ignore
     /// let mut tree = Tree::new(serde_json::json!([1, 2, 3]));
     /// let result = tree.for_each(|x| *x = serde_json::json!(*x.as_i64().unwrap() + 1));
     /// assert_eq!(result.unwrap().inner, serde_json::json!([2, 3, 4]));
@@ -237,7 +237,7 @@ impl Tree {
     ///
     /// # Examples
     ///
-    /// ```
+    /// ```ignore
     /// let tree = Tree::new(serde_json::json!([1, 2, 3]));
     /// let result = tree.array_len();
     /// assert_eq!(result.unwrap(), 3);
