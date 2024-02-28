@@ -48,29 +48,56 @@ impl NanoDB {
         })
     }
 
-    /// Index into a JSON array or map. A string index can be used to access a
-    /// value in a map, and a usize index can be used to access an element of an
-    /// array.
+    /// Retrieves the value associated with a given key in the JSON data of the NanoDB instance.
     ///
-    /// Returns `None` if the type of `self` does not match the type of the
-    /// index, for example if the index is a string and `self` is an array or a
-    /// number. Also returns `None` if the given key does not exist in the map
-    /// or the given index is not within the bounds of the array.
+    /// # Arguments
+    ///
+    /// * `key` - The key to retrieve the value for.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Tree)` - A new Tree object that represents the value associated with `key`.
+    /// * `Err(NanoDBError::RwLockReadError)` - If there was an error acquiring the read lock.
+    /// * `Err(anyhow!("Key not found: {}", key))` - If `key` does not exist in the JSON data.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let db = NanoDB::new("path/to/json/file.json").unwrap();
+    /// let result = db.get("key");
+    /// assert_eq!(result.unwrap().inner, serde_json::json!("value"));
+    /// ```
     pub fn get(&self, key: &str) -> Result<Tree, NanoDBError> {
         let data = self.data.read().map_err(|_| NanoDBError::RwLockReadError)?;
         let value = data
             .get(key)
             .ok_or_else(|| anyhow!("Key not found: {}", key))?;
-        Ok(Tree {
-            inner: value.clone(),
-            path: vec![PathStep::Key(key.to_string())],
-        })
+        Ok(Tree::new(
+            value.clone(),
+            vec![PathStep::Key(key.to_string())],
+        ))
     }
 
-    /// Inserts a key-value pair into the JSON object.
-    /// If the JSON object did not have this key present, None is returned.
-    /// If the JSON object did have this key present, the value is updated, and the old value is returned.
-    /// The key is not updated
+    /// Inserts a key-value pair into the JSON data of the NanoDB instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - The key to insert the value for.
+    /// * `value` - The value to insert. This value must implement the `Serialize` trait.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - If the operation was successful.
+    /// * `Err(NanoDBError::RwLockReadError)` - If there was an error acquiring the write lock.
+    /// * `Err(serde_json::Error)` - If there was an error serializing `value`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mut db = NanoDB::new("path/to/json/file.json").unwrap();
+    /// db.insert("key", "value").unwrap();
+    /// assert_eq!(db.get("key").unwrap().inner, serde_json::json!("value"));
+    /// ```
     pub fn insert<T: Serialize>(&mut self, key: &str, value: T) -> Result<(), NanoDBError> {
         let mut data = self
             .data
