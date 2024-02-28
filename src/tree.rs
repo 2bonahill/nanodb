@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::error::NanoDBError;
 
 #[derive(Debug, Clone)]
-pub struct ValueTree {
+pub struct Tree {
     pub inner: serde_json::Value,
     pub path: Vec<PathStep>,
 }
@@ -16,7 +16,7 @@ pub enum PathStep {
 }
 
 #[derive(Debug, Clone)]
-pub enum ValueTreeType {
+pub enum TreeType {
     Null,
     Bool,
     Number,
@@ -25,9 +25,9 @@ pub enum ValueTreeType {
     Object,
 }
 
-impl ValueTree {
+impl Tree {
     // This method allows chaining by returning another ValueWrapper.
-    pub fn get(&self, key: &str) -> Result<ValueTree, NanoDBError> {
+    pub fn get(&self, key: &str) -> Result<Tree, NanoDBError> {
         match &self.inner {
             serde_json::Value::Object(map) => {
                 let value = map
@@ -35,7 +35,7 @@ impl ValueTree {
                     .ok_or_else(|| anyhow!("Key not found: {}", key))?;
                 let mut new_path: Vec<PathStep> = self.path.clone();
                 new_path.push(PathStep::Key(key.to_string()));
-                Ok(ValueTree {
+                Ok(Tree {
                     inner: value.clone(),
                     path: new_path,
                 })
@@ -44,7 +44,7 @@ impl ValueTree {
         }
     }
 
-    pub fn at(&self, index: usize) -> Result<ValueTree, NanoDBError> {
+    pub fn at(&self, index: usize) -> Result<Tree, NanoDBError> {
         match &self.inner {
             serde_json::Value::Array(arr) => {
                 let value = arr
@@ -52,7 +52,7 @@ impl ValueTree {
                     .ok_or_else(|| anyhow!("Index out of bounds: {}", index))?;
                 let mut new_path: Vec<PathStep> = self.path.clone();
                 new_path.push(PathStep::Index(index));
-                Ok(ValueTree {
+                Ok(Tree {
                     inner: value.clone(),
                     path: new_path,
                 })
@@ -69,14 +69,14 @@ impl ValueTree {
         self.path.clone()
     }
 
-    pub fn tree_type(&self) -> ValueTreeType {
+    pub fn tree_type(&self) -> TreeType {
         match &self.inner {
-            serde_json::Value::Null => ValueTreeType::Null,
-            serde_json::Value::Bool(_) => ValueTreeType::Bool,
-            serde_json::Value::Number(_) => ValueTreeType::Number,
-            serde_json::Value::String(_) => ValueTreeType::String,
-            serde_json::Value::Array(_) => ValueTreeType::Array,
-            serde_json::Value::Object(_) => ValueTreeType::Object,
+            serde_json::Value::Null => TreeType::Null,
+            serde_json::Value::Bool(_) => TreeType::Bool,
+            serde_json::Value::Number(_) => TreeType::Number,
+            serde_json::Value::String(_) => TreeType::String,
+            serde_json::Value::Array(_) => TreeType::Array,
+            serde_json::Value::Object(_) => TreeType::Object,
         }
     }
 
@@ -84,7 +84,7 @@ impl ValueTree {
     /// If self is not of type array, an error is returned
     /// If the value cannot be serialized, an error is returned
     /// If the value is successfully pushed, Ok is returned
-    pub fn push<T: Serialize>(&mut self, value: T) -> Result<ValueTree, NanoDBError> {
+    pub fn push<T: Serialize>(&mut self, value: T) -> Result<Tree, NanoDBError> {
         let value = serde_json::to_value(value)?;
 
         if let Some(v) = self.inner.as_array_mut() {
@@ -98,7 +98,7 @@ impl ValueTree {
 
     /// Apply a closure to each element of an array
     /// If self is not of type array, an error is returned
-    pub fn for_each<F>(&mut self, f: F) -> Result<ValueTree, NanoDBError>
+    pub fn for_each<F>(&mut self, f: F) -> Result<Tree, NanoDBError>
     where
         F: FnMut(&mut serde_json::Value),
     {

@@ -8,7 +8,7 @@ use std::{
 
 use crate::{
     error::NanoDBError,
-    value_tree::{PathStep, ValueTree},
+    tree::{PathStep, Tree},
 };
 
 #[derive(Debug)]
@@ -41,12 +41,12 @@ impl NanoDB {
     /// index, for example if the index is a string and `self` is an array or a
     /// number. Also returns `None` if the given key does not exist in the map
     /// or the given index is not within the bounds of the array.
-    pub fn get(&self, key: &str) -> Result<ValueTree, NanoDBError> {
+    pub fn get(&self, key: &str) -> Result<Tree, NanoDBError> {
         let data = self.data.read().map_err(|_| NanoDBError::RwLockReadError)?;
         let value = data
             .get(key)
             .ok_or_else(|| anyhow!("Key not found: {}", key))?;
-        Ok(ValueTree {
+        Ok(Tree {
             inner: value.clone(),
             path: vec![PathStep::Key(key.to_string())],
         })
