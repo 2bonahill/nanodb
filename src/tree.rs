@@ -26,7 +26,6 @@ pub enum TreeType {
 }
 
 impl Tree {
-    // This method allows chaining by returning another ValueWrapper.
     pub fn get(&self, key: &str) -> Result<Tree, NanoDBError> {
         match &self.inner {
             serde_json::Value::Object(map) => {
@@ -80,11 +79,25 @@ impl Tree {
         }
     }
 
-    /// Push a value to an array
-    /// If self is not of type array, an error is returned
-    /// If the value cannot be serialized, an error is returned
-    /// If the value is successfully pushed, Ok is returned
-    pub fn push<T: Serialize>(&mut self, value: T) -> Result<Tree, NanoDBError> {
+    /// Pushes a value to the tree if it's an array.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - A value of type T that implements the Serialize trait. This value will be serialized to JSON and pushed to the array.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Tree)` - A new Tree object that represents the current state of the tree after the value has been pushed.
+    /// * `Err(NanoDBError::NotAnArray)` - If the inner value of the tree is not an array.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mut tree = Tree::new(serde_json::json!([1, 2, 3]));
+    /// let result = tree.push(4);
+    /// assert_eq!(result.unwrap().inner, serde_json::json!([1, 2, 3, 4]));
+    /// ```
+    pub fn array_push<T: Serialize>(&mut self, value: T) -> Result<Tree, NanoDBError> {
         let value = serde_json::to_value(value)?;
 
         if let Some(v) = self.inner.as_array_mut() {
@@ -96,9 +109,25 @@ impl Tree {
         Ok(self.clone())
     }
 
-    /// Apply a closure to each element of an array
-    /// If self is not of type array, an error is returned
-    pub fn for_each<F>(&mut self, f: F) -> Result<Tree, NanoDBError>
+    /// Applies a function to each element of the inner array of the tree.
+    ///
+    /// # Arguments
+    ///
+    /// * `f` - A mutable function that takes a mutable reference to a `serde_json::Value` and returns `()`.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Tree)` - A new Tree object that represents the current state of the tree after the function has been applied to each element.
+    /// * `Err(NanoDBError::NotAnArray)` - If the inner value of the tree is not an array.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mut tree = Tree::new(serde_json::json!([1, 2, 3]));
+    /// let result = tree.for_each(|x| *x = serde_json::json!(*x.as_i64().unwrap() + 1));
+    /// assert_eq!(result.unwrap().inner, serde_json::json!([2, 3, 4]));
+    /// ```
+    pub fn array_for_each<F>(&mut self, f: F) -> Result<Tree, NanoDBError>
     where
         F: FnMut(&mut serde_json::Value),
     {
@@ -109,5 +138,26 @@ impl Tree {
         }
 
         Ok(self.clone())
+    }
+
+    /// Returns the length of the inner array of the tree.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(usize)` - The length of the array if the inner value of the tree is an array.
+    /// * `Err(NanoDBError::NotAnArray)` - If the inner value of the tree is not an array.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let tree = Tree::new(serde_json::json!([1, 2, 3]));
+    /// let result = tree.array_len();
+    /// assert_eq!(result.unwrap(), 3);
+    /// ```
+    pub fn array_len(&self) -> Result<usize, NanoDBError> {
+        match &self.inner {
+            serde_json::Value::Array(arr) => Ok(arr.len()),
+            _ => Err(NanoDBError::NotAnArray),
+        }
     }
 }

@@ -11,6 +11,21 @@ use crate::{
     tree::{PathStep, Tree},
 };
 
+/// A struct representing a NanoDB instance.
+///
+/// # Fields
+///
+/// * `path` - The path to the JSON file that this NanoDB instance is managing.
+/// * `data` - The JSON data that this NanoDB instance is managing.
+///
+/// # Methods
+///
+/// * `new` - Synchronous constructor.
+/// * `get` - Index into a JSON array or map.
+/// * `insert` - Inserts a key-value pair into the JSON object.
+/// * `write` - Write the current state of the JSON data to disk synchronously.
+/// * `write_async` - Write the current state of the JSON data to disk asynchronously.
+/// * `merge` - Pushes a value to a nested array specified by a string path.
 #[derive(Debug)]
 pub struct NanoDB {
     path: PathBuf,

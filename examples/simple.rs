@@ -12,6 +12,7 @@ async fn main() -> Result<()> {
     // Simple getter
     let age: i64 = db.get("age")?.into()?;
     let city: String = db.get("address")?.get("city")?.into()?;
+    let fruits_value_tree: String = db.get("fruits")?.at(1)?.into()?;
 
     // Setting
     db.insert("age", 40)?;
@@ -19,18 +20,20 @@ async fn main() -> Result<()> {
     db.insert("fruits", vec!["apple", "banana", "orange", "avocado"])?;
     db.insert("hobbies", vec!["ski", "tennis", "fitness", "climbing"])?;
 
-    // getters
+    // Tree methods
+    let number_of_fruits = db.get("fruits")?.array_len()?;
+    let fruits = db.get("fruits")?.array_push("mango")?;
+    dbg!(fruits);
 
     let fruits_value_tree: Tree = db.get("fruits")?.at(1)?;
     let address: Map<String, Value> = db.get("address")?.into()?;
 
     // value trees
     let mut numbers: Tree = db.get("numbers")?;
-    dbg!(&numbers);
-    let numbers = numbers.for_each(|v| {
+
+    let numbers = numbers.array_for_each(|v| {
         *v = Value::from(v.as_i64().unwrap() * 2i64);
     });
-    dbg!(&numbers);
 
     db.write()?;
 
