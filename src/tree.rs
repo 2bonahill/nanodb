@@ -5,8 +5,8 @@ use crate::error::NanoDBError;
 
 #[derive(Debug, Clone)]
 pub struct Tree {
-    pub inner: serde_json::Value,
-    pub path: Vec<PathStep>,
+    inner: serde_json::Value,
+    path: Vec<PathStep>,
 }
 
 #[derive(Debug, Clone)]
@@ -96,12 +96,16 @@ impl Tree {
         }
     }
 
-    pub fn into<T: for<'de> Deserialize<'de>>(self) -> Result<T, NanoDBError> {
-        serde_json::from_value(self.inner).map_err(Into::into)
+    pub fn inner(&self) -> serde_json::Value {
+        self.inner.clone()
     }
 
     pub fn path(&self) -> Vec<PathStep> {
         self.path.clone()
+    }
+
+    pub fn into<T: for<'de> Deserialize<'de>>(self) -> Result<T, NanoDBError> {
+        serde_json::from_value(self.inner).map_err(Into::into)
     }
 
     /// Returns the type of the inner value of the tree.
@@ -212,5 +216,31 @@ impl Tree {
             serde_json::Value::Array(arr) => Ok(arr.len()),
             _ => Err(NanoDBError::NotAnArray),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::nanodb::NanoDB;
+
+    use serde_json::json;
+
+    fn contents() -> String {
+        r#"{
+			"key1": "value1",
+			"key2": "value2",
+			"key3": {
+				"inner_key1": "inner_value1",
+				"inner_key2": "inner_value2"
+			}
+		}"#
+        .to_string()
+    }
+
+    #[test]
+    fn test_new_tree() {
+        let db = NanoDB::new_from("/path/to/file.json", &contents()).unwrap();
+        let tree = db.get("key2").unwrap();
+        assert_eq!(tree.inner(), json!("value2"));
     }
 }

@@ -5,7 +5,7 @@ use std::{
     path::PathBuf,
     sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
-use tempfile::tempdir;
+use tempfile::{tempdir, TempDir};
 
 use crate::{
     error::NanoDBError,
@@ -85,13 +85,12 @@ impl NanoDB {
         let data = serde_json::from_str(&contents)?;
         let _path: PathBuf;
         if cfg!(test) {
-            let dir = tempdir().unwrap();
-            _path = dir.path().join("temp.json");
+            let tmp_dir = tempdir()?;
+            _path = tmp_dir.path().join("my_file.json");
         } else {
             _path = path.into();
             std::fs::write(&_path, &contents)?;
         }
-
         Ok(Self {
             path: _path,
             data: Arc::new(RwLock::new(data)),
@@ -109,6 +108,14 @@ impl NanoDB {
     /// * `Ok(Tree)` - A new Tree object that represents the value associated with `key`.
     /// * `Err(NanoDBError::RwLockReadError)` - If there was an error acquiring the read lock.
     /// * `Err(anyhow!("Key not found: {}", key))` - If `key` does not exist in the JSON data.
+    /// # Examples
+    ///
+    /// ```ignore
+    /// use nanodb::nanodb::NanoDB;
+    /// use serde_json::json;
+    /// let db = NanoDB::new_from("/path/to/file.json", r#"{"key": "value"}"#).unwrap();
+    /// assert_eq!(db.get("key").unwrap().inner, json!("value"));
+    /// ```
     pub fn get(&self, key: &str) -> Result<Tree, NanoDBError> {
         let data = self.data.read().map_err(|_| NanoDBError::RwLockReadError)?;
         let value = data
@@ -185,7 +192,7 @@ impl NanoDB {
             }
         }
 
-        *current = tree.inner;
+        *current = tree.inner();
         Ok(())
     }
 
@@ -246,21 +253,21 @@ mod tests {
     #[test]
     fn test_new_from() {
         let db = NanoDB::new_from("/path/to/file.json", r#"{"key": "value"}"#).unwrap();
-        assert_eq!(db.get("key").unwrap().inner, json!("value"));
+        assert_eq!(db.get("key").unwrap().inner(), json!("value"));
     }
 
     #[test]
     fn test_insert() {
         let mut db = NanoDB::new_from("/path/to/file.json", r#"{}"#).unwrap();
         db.insert("new_key", "new_value").unwrap();
-        assert_eq!(db.get("new_key").unwrap().inner, json!("new_value"));
+        assert_eq!(db.get("new_key").unwrap().inner(), json!("new_value"));
     }
 
     #[test]
     fn test_get() {
         let db = NanoDB::new_from("/path/to/file.json", r#"{"key": "value"}"#).unwrap();
         let result = db.get("key").unwrap();
-        assert_eq!(result.inner, json!("value"));
+        assert_eq!(result.inner(), json!("value"));
     }
 
     #[test]
@@ -270,29 +277,12 @@ mod tests {
             r#"{"key": {"nested_key": "nested_value"}}"#,
         )
         .unwrap();
-        let tree = db.get("key").unwrap();
-        dbg!(&tree);
+        let mut tree = db.get("key").unwrap();
+        tree.insert("nested_key_2", "nested_value_2").unwrap();
         db.merge(tree).unwrap();
-        dbg!(&db);
-        // assert_eq!(
-        //     db.get("key").unwrap().inner,
-        //     json!({"nested_key": "nested_value", "new_nested_key": "new_nested_value"})
-        // );
+        assert_eq!(
+            db.get("key").unwrap().get("nested_key_2").unwrap().inner(),
+            json!("nested_value_2")
+        );
     }
-
-    // #[tokio::test]
-    // async fn test_write_and_write_async() {
-    //     let mut db = temp_nano_db(r#"{"key": "value"}"#);
-    //     db.insert("new_key", "new_value").unwrap();
-    //     db.write().unwrap();
-
-    //     // Verify that the file has been updated correctly
-    //     let contents = fs::read_to_string(db.path).unwrap();
-    //     assert_eq!(
-    //         contents,
-    //         serde_json::to_string_pretty(&json!({"key": "value", "new_key": "new_value"})).unwrap()
-    //     );
-    // }
-
-    // Add more tests as needed for other methods
 }
