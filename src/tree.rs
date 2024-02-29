@@ -223,7 +223,7 @@ impl Tree {
 mod tests {
     use crate::nanodb::NanoDB;
 
-    use serde_json::json;
+    use serde_json::{json, Value};
 
     fn contents() -> String {
         r#"{
@@ -232,15 +232,73 @@ mod tests {
 			"key3": {
 				"inner_key1": "inner_value1",
 				"inner_key2": "inner_value2"
-			}
+			},
+			"key4": [1, 2, 3]
 		}"#
         .to_string()
     }
 
     #[test]
-    fn test_new_tree() {
+    fn test_tree_get() {
         let db = NanoDB::new_from("/path/to/file.json", &contents()).unwrap();
-        let tree = db.get("key2").unwrap();
-        assert_eq!(tree.inner(), json!("value2"));
+        let tree1 = db.get("key2").unwrap();
+        assert_eq!(tree1.inner(), json!("value2"));
+
+        let tree2 = db.get("key3").unwrap();
+        assert_eq!(
+            tree2.inner(),
+            json!({
+                "inner_key1": "inner_value1",
+                "inner_key2": "inner_value2"
+            })
+        );
+    }
+
+    #[test]
+    fn test_tree_at() {
+        let db = NanoDB::new_from("/path/to/file.json", &contents()).unwrap();
+        let tree = db.get("key4").unwrap();
+        let tree = tree.at(1).unwrap();
+        assert_eq!(tree.inner(), serde_json::json!(2));
+    }
+
+    #[test]
+    fn test_tree_insert() {
+        let db = NanoDB::new_from("/path/to/file.json", &contents()).unwrap();
+        let mut tree = db.get("key3").unwrap();
+        tree.insert("new_key", "new_value").unwrap();
+        let tree = tree.get("new_key").unwrap();
+        assert_eq!(tree.inner(), serde_json::json!("new_value"));
+    }
+
+    #[test]
+    fn test_array_push() {
+        let db = NanoDB::new_from("/path/to/file.json", &contents()).unwrap();
+        let mut tree = db.get("key4").unwrap();
+        tree.array_push(10).unwrap();
+        assert!(tree
+            .inner()
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::json!(10)));
+    }
+    #[test]
+    fn test_tree_array_for_each() {
+        let mut db = NanoDB::new_from("/path/to/file.json", &contents()).unwrap();
+        let mut tree = db.get("key4").unwrap(); // Assuming this key exists and is an array
+        tree.array_for_each(|v| {
+            *v = Value::from(v.as_i64().unwrap() + 2i64);
+        })
+        .unwrap();
+        db.merge(tree).unwrap();
+        let tree = db.get("key4").unwrap();
+        assert_eq!(tree.inner(), json!([3, 4, 5]));
+    }
+
+    #[test]
+    fn test_tree_array_len() {
+        let db = NanoDB::new_from("/path/to/file.json", &contents()).unwrap();
+        let tree = db.get("key4").unwrap();
+        assert_eq!(tree.array_len().unwrap(), 3);
     }
 }
