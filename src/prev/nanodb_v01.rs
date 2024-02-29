@@ -42,7 +42,7 @@ impl NanoDB {
         let data = self.data.read().map_err(|_| NanoDBError::RwLockReadError)?;
         let value = data
             .get(key)
-            .ok_or_else(|| anyhow!("Key not found: {}", key))?;
+            .ok_or_else(|| NanoDBError::KeyNotFound(key.to_string()))?;
         serde_json::from_value(value.clone()).map_err(Into::into)
     }
 
@@ -89,7 +89,7 @@ impl NanoDB {
 
         let value = object
             .get_mut(key)
-            .ok_or_else(|| anyhow!("Key not found: {}", key))?;
+            .ok_or_else(|| NanoDBError::KeyNotFound(key.to_string()))?;
 
         if value.is_array() {
             let value = value.as_array_mut().ok_or(NanoDBError::NotAnArray)?;
@@ -123,7 +123,7 @@ impl NanoDB {
             if current.is_object() {
                 current = current
                     .get_mut(&key)
-                    .ok_or_else(|| anyhow!("Key not found: {}", key))?;
+                    .ok_or_else(|| NanoDBError::KeyNotFound(key.to_string()))?;
             } else if let Ok(idx) = key.parse::<usize>() {
                 // If the current value is not an object, try to parse the key as an array index.
                 if !current.is_array() {
@@ -169,7 +169,7 @@ impl NanoDB {
         let data_guard = self
             .data
             .write()
-            .map_err(|e| anyhow!("Failed to acquire lock: {}", e))?;
+            .map_err(|e| NanoDBError::RwLockWriteError(e.to_string()))?;
         dbg!(&data_guard);
         let contents = serde_json::to_string_pretty(&*data_guard)?;
         std::fs::write(&self.path, contents)?;
@@ -181,7 +181,7 @@ impl NanoDB {
         let data_guard = self
             .data
             .write()
-            .map_err(|e| anyhow!("Failed to acquire lock: {}", e))?;
+            .map_err(|e| NanoDBError::RwLockWriteError(e.to_string()))?;
         let contents = serde_json::to_string_pretty(&*data_guard)?;
         tokio::fs::write(&self.path, contents).await?;
         Ok(())

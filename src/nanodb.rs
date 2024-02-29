@@ -1,4 +1,3 @@
-use anyhow::anyhow;
 use serde::Serialize;
 use serde_json::Value;
 use std::{
@@ -121,7 +120,7 @@ impl NanoDB {
     ///
     /// * `Ok(Tree)` - A new Tree object that represents the value associated with `key`.
     /// * `Err(NanoDBError::RwLockReadError)` - If there was an error acquiring the read lock.
-    /// * `Err(anyhow!("Key not found: {}", key))` - If `key` does not exist in the JSON data.
+    /// * `Err(NanoDBError::KeyNotFound(key))` - If `key` does not exist in the JSON data.
     /// # Examples
     ///
     /// ```
@@ -132,10 +131,13 @@ impl NanoDB {
     /// assert_eq!(db.get("key").unwrap().inner(), json!("value"));
     /// ```
     pub fn get(&self, key: &str) -> Result<Tree, NanoDBError> {
-        let data = self.data.read().map_err(|_| NanoDBError::RwLockReadError)?;
+        let data = self
+            .data
+            .read()
+            .map_err(|e| NanoDBError::RwLockReadError(e.to_string()))?;
         let value = data
             .get(key)
-            .ok_or_else(|| anyhow!("Key not found: {}", key))?;
+            .ok_or_else(|| NanoDBError::KeyNotFound(key.to_string()))?;
         Ok(Tree::new(
             value.clone(),
             vec![PathStep::Key(key.to_string())],
@@ -168,7 +170,7 @@ impl NanoDB {
         let mut data = self
             .data
             .write()
-            .map_err(|_| NanoDBError::RwLockReadError)?;
+            .map_err(|e| NanoDBError::RwLockReadError(e.to_string()))?;
         let value = serde_json::to_value(value)?;
         data.as_object_mut().unwrap().insert(key.to_string(), value);
         Ok(())
@@ -229,7 +231,7 @@ impl NanoDB {
                 PathStep::Index(idx) => {
                     if current.is_array() {
                         let arr = current.as_array_mut().unwrap();
-                        current = arr.get_mut(idx).ok_or(NanoDBError::IndexOutOfBounds)?;
+                        current = arr.get_mut(idx).ok_or(NanoDBError::IndexOutOfBounds(idx))?;
                     } else {
                         return Err(NanoDBError::InvalidJSONPath);
                     }
@@ -271,7 +273,7 @@ impl NanoDB {
         let data_guard = self
             .data
             .write()
-            .map_err(|e| anyhow!("Failed to acquire lock: {}", e))?;
+            .map_err(|e| NanoDBError::RwLockWriteError(e.to_string()))?;
         let contents = serde_json::to_string_pretty(&*data_guard)?;
         std::fs::write(&self.path, contents)?;
         Ok(())
@@ -282,18 +284,22 @@ impl NanoDB {
         let data_guard = self
             .data
             .write()
-            .map_err(|e| anyhow!("Failed to acquire lock: {}", e))?;
+            .map_err(|e| NanoDBError::RwLockWriteError(e.to_string()))?;
         let contents = serde_json::to_string_pretty(&*data_guard)?;
         tokio::fs::write(&self.path, contents).await?;
         Ok(())
     }
 
     fn _write_lock(&mut self) -> Result<RwLockWriteGuard<'_, Value>, NanoDBError> {
-        self.data.write().map_err(|_| NanoDBError::RwLockWriteError)
+        self.data
+            .write()
+            .map_err(|e| NanoDBError::RwLockWriteError(e.to_string()))
     }
 
     fn _read_lock(&mut self) -> Result<RwLockReadGuard<'_, Value>, NanoDBError> {
-        self.data.read().map_err(|_| NanoDBError::RwLockReadError)
+        self.data
+            .read()
+            .map_err(|e| NanoDBError::RwLockReadError(e.to_string()))
     }
 }
 

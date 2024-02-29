@@ -1,13 +1,13 @@
 mod simple;
 
-use anyhow::Result;
 use std::time::Duration;
 
+use nanodb::error::NanoDBError;
 use tokio::time::sleep;
 extern crate nanodb;
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> Result<(), NanoDBError> {
     // spawn a new task
     // Use `tokio::spawn` to run asynchronous tasks
     let mut handles = Vec::new();

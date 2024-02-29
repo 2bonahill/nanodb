@@ -1,4 +1,3 @@
-use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 
 use crate::error::NanoDBError;
@@ -15,6 +14,15 @@ pub enum PathStep {
     Index(usize),
 }
 
+impl std::fmt::Display for PathStep {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PathStep::Key(key) => write!(f, "{}", key),
+            PathStep::Index(index) => write!(f, "[{}]", index),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum TreeType {
     Null,
@@ -23,6 +31,13 @@ pub enum TreeType {
     String,
     Array,
     Object,
+}
+
+// impl std::fmt::Display for Tree
+impl std::fmt::Display for Tree {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Path: {} \nValue: {}", self.path_string(), self.inner)
+    }
 }
 
 impl Tree {
@@ -50,13 +65,13 @@ impl Tree {
     ///
     /// * `Ok(Tree)` - A new Tree object that represents the value associated with `key`.
     /// * `Err(NanoDBError::NotAnObject)` - If the inner value of the tree is not an object.
-    /// * `Err(anyhow!("Key not found: {}", key))` - If `key` does not exist in the JSON object.
+    /// * `Err(NanoDBError::KeyNotFound(key))` - If `key` does not exist in the JSON object.
     pub fn get(&self, key: &str) -> Result<Tree, NanoDBError> {
         match &self.inner {
             serde_json::Value::Object(map) => {
                 let value = map
                     .get(key)
-                    .ok_or_else(|| anyhow!("Key not found: {}", key))?;
+                    .ok_or_else(|| NanoDBError::KeyNotFound(key.to_string()))?;
                 let mut new_path: Vec<PathStep> = self.path.clone();
                 new_path.push(PathStep::Key(key.to_string()));
                 Ok(Tree {
@@ -78,13 +93,13 @@ impl Tree {
     ///
     /// * `Ok(Tree)` - A new Tree object that represents the value at `index`.
     /// * `Err(NanoDBError::NotAnArray)` - If the inner value of the tree is not an array.
-    /// * `Err(anyhow!("Index out of bounds: {}", index))` - If `index` is out of bounds of the array.
+    /// * `Err(NanoDBError::IndexOutOfBounds(index))` - If `index` is out of bounds of the array.
     pub fn at(&self, index: usize) -> Result<Tree, NanoDBError> {
         match &self.inner {
             serde_json::Value::Array(arr) => {
                 let value = arr
                     .get(index)
-                    .ok_or_else(|| anyhow!("Index out of bounds: {}", index))?;
+                    .ok_or_else(|| NanoDBError::IndexOutOfBounds(index))?;
                 let mut new_path: Vec<PathStep> = self.path.clone();
                 new_path.push(PathStep::Index(index));
                 Ok(Tree {
@@ -92,7 +107,7 @@ impl Tree {
                     path: new_path,
                 })
             }
-            _ => Err(NanoDBError::NotAnArray),
+            _ => Err(NanoDBError::NotAnArray(self.path_string())),
         }
     }
 
@@ -102,6 +117,14 @@ impl Tree {
 
     pub fn path(&self) -> Vec<PathStep> {
         self.path.clone()
+    }
+
+    pub fn path_string(&self) -> String {
+        self.path
+            .iter()
+            .map(|p| p.to_string())
+            .collect::<Vec<String>>()
+            .join(".")
     }
 
     pub fn into<T: for<'de> Deserialize<'de>>(self) -> Result<T, NanoDBError> {
@@ -176,7 +199,7 @@ impl Tree {
         if let Some(v) = self.inner.as_array_mut() {
             v.push(value);
         } else {
-            return Err(NanoDBError::NotAnArray);
+            return Err(NanoDBError::NotAnArray(self.path_string()));
         }
 
         Ok(self.clone())
@@ -199,7 +222,7 @@ impl Tree {
         if let Some(v) = self.inner.as_array_mut() {
             v.iter_mut().for_each(f);
         } else {
-            return Err(NanoDBError::NotAnArray);
+            return Err(NanoDBError::NotAnArray(self.path_string()));
         }
 
         Ok(self.clone())
@@ -214,7 +237,7 @@ impl Tree {
     pub fn array_len(&self) -> Result<usize, NanoDBError> {
         match &self.inner {
             serde_json::Value::Array(arr) => Ok(arr.len()),
-            _ => Err(NanoDBError::NotAnArray),
+            _ => Err(NanoDBError::NotAnArray(self.path_string())),
         }
     }
 }

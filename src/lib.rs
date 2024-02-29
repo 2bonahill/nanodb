@@ -7,7 +7,7 @@
 //! # use nanodb::nanodb::NanoDB;
 //! # use serde_json::json;
 //! # use serde_json::Value;
-//! # use serde_json::Map;
+//! # use serde::{Deserialize, Serialize};
 //! # let mut db = NanoDB::doctest_new_from(
 //! #    "/path/to/file.json",
 //! #    r#"{"key": {"nested_key": "nested_value"}}"#,
@@ -17,7 +17,7 @@
 //! db.insert("email", "johndoe@gmail.com").unwrap();
 //! db.insert("fruits", vec!["apple", "banana", "orange"]).unwrap();
 //! db.insert("hobbies", vec!["ski", "tennis", "fitness", "climbing"]).unwrap();
-//! db.insert("address", json!({"city": "New York"})).unwrap();
+//! db.insert("address", json!({"city": "Zurich", "country": "Switzerland"})).unwrap();
 //! db.insert("numbers", [1,2,3,4]).unwrap();
 //! // db.write().unwrap(); // In case data needs to be written to the file
 //!
@@ -25,7 +25,14 @@
 //! let age: i64 = db.get("age").unwrap().into().unwrap();
 //! let city: String = db.get("address").unwrap().get("city").unwrap().into().unwrap();
 //! let fruits_value_tree: String = db.get("fruits").unwrap().at(1).unwrap().into().unwrap();
-//! let address: Map<String, Value> = db.get("address").unwrap().into().unwrap();
+//!
+//! // Using a custom address struct
+//! #[derive(Debug, Deserialize, Serialize)]
+//! struct Address {
+//!     city: String,
+//!     country: String,
+//! }
+//! let address: Address = db.get("address").unwrap().into().unwrap();
 //!
 //! // Tree method (a tree consists of a part of the JSON object contained in the database)
 //! let number_of_fruits = db.get("fruits").unwrap().array_len().unwrap();

@@ -1,12 +1,12 @@
 #![allow(unused_variables)]
-use anyhow::Result;
-use nanodb::nanodb::NanoDB;
+
+use nanodb::{error::NanoDBError, nanodb::NanoDB};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 #[allow(dead_code)]
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> Result<(), NanoDBError> {
     let mut db = NanoDB::open("examples/data.json")?;
 
     // Setting

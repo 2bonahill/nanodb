@@ -9,19 +9,21 @@ pub enum NanoDBError {
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
     // Lock error
-    #[error("RwLock Read error")]
-    RwLockReadError,
-    #[error("RwLock Write error")]
-    RwLockWriteError,
-    #[error("Not array")]
-    NotAnArray,
+    #[error("RwLock Read error: {0}")]
+    RwLockReadError(String),
+    #[error("RwLock Write error: {0}")]
+    RwLockWriteError(String),
+    #[error("The value at '{0}' is not array")]
+    NotAnArray(String),
     #[error("Not an object")]
     NotAnObject,
-    #[error("Index out of bounds")]
-    IndexOutOfBounds,
+    #[error("Key '{0}' not found")]
+    KeyNotFound(String),
+    #[error("Index {0} is out of bounds")]
+    IndexOutOfBounds(usize),
     #[error("Invalid JSON path")]
     InvalidJSONPath,
-    // Basic error from anyhow
-    #[error("Error: {0}")]
-    Anyhow(#[from] anyhow::Error),
+    // Default error
+    #[error("An error occurred")]
+    DefaultError,
 }
