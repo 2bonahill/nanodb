@@ -5,7 +5,7 @@ use std::{
     path::PathBuf,
     sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
-use tempfile::{tempdir, TempDir};
+use tempfile::tempdir;
 
 use crate::{
     error::NanoDBError,
@@ -49,7 +49,7 @@ impl NanoDB {
     ///
     /// # Examples
     ///
-    /// ```ignore
+    /// ```text
     /// let db = NanoDB::new("path/to/json/file.json").unwrap();
     /// ```
     pub fn new(path: impl Into<PathBuf>) -> Result<Self, NanoDBError> {
@@ -97,6 +97,20 @@ impl NanoDB {
         })
     }
 
+    pub fn doctest_new_from(
+        _path: impl Into<PathBuf>,
+        contents: &str,
+    ) -> Result<Self, NanoDBError> {
+        let data = serde_json::from_str(&contents)?;
+        let _path: PathBuf;
+        let tmp_dir = tempdir()?;
+        _path = tmp_dir.path().join("my_file.json");
+        Ok(Self {
+            path: _path,
+            data: Arc::new(RwLock::new(data)),
+        })
+    }
+
     /// Retrieves the value associated with a given key in the JSON data of the NanoDB instance.
     ///
     /// # Arguments
@@ -110,11 +124,12 @@ impl NanoDB {
     /// * `Err(anyhow!("Key not found: {}", key))` - If `key` does not exist in the JSON data.
     /// # Examples
     ///
-    /// ```ignore
-    /// use nanodb::nanodb::NanoDB;
-    /// use serde_json::json;
-    /// let db = NanoDB::new_from("/path/to/file.json", r#"{"key": "value"}"#).unwrap();
-    /// assert_eq!(db.get("key").unwrap().inner, json!("value"));
+    /// ```
+    /// # use nanodb::nanodb::NanoDB;
+    /// # use serde_json::json;
+    /// # let db = NanoDB::doctest_new_from("/path/to/file.json", r#"{"key": "value"}"#).unwrap();
+    /// // Data: {"key": "value"}
+    /// assert_eq!(db.get("key").unwrap().inner(), json!("value"));
     /// ```
     pub fn get(&self, key: &str) -> Result<Tree, NanoDBError> {
         let data = self.data.read().map_err(|_| NanoDBError::RwLockReadError)?;
@@ -139,6 +154,16 @@ impl NanoDB {
     /// * `Ok(())` - If the operation was successful.
     /// * `Err(NanoDBError::RwLockReadError)` - If there was an error acquiring the write lock.
     /// * `Err(serde_json::Error)` - If there was an error serializing `value`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use nanodb::nanodb::NanoDB;
+    /// # use serde_json::json;
+    /// # let mut db = NanoDB::doctest_new_from("/path/to/file.json", r#"{"key": "value"}"#).unwrap();
+    /// db.insert("key", "value");
+    /// db.insert("key2", [1,2,3]);
+    /// ```
     pub fn insert<T: Serialize>(&mut self, key: &str, value: T) -> Result<(), NanoDBError> {
         let mut data = self
             .data
@@ -161,6 +186,26 @@ impl NanoDB {
     /// * `Err(NanoDBError::RwLockWriteError)` - If there was an error acquiring the write lock.
     /// * `Err(NanoDBError::InvalidJSONPath)` - If the path does not exist in the JSON data or if a path step is not valid for the current value (e.g., using a key on an array or an index on an object).
     /// * `Err(NanoDBError::IndexOutOfBounds)` - If an index path step is out of bounds of the array.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use nanodb::nanodb::NanoDB;
+    /// # use serde_json::json;
+    /// # let mut db = NanoDB::doctest_new_from(
+    /// #    "/path/to/file.json",
+    /// #    r#"{"key": {"nested_key": "nested_value"}}"#,
+    /// # )
+    /// # .unwrap();
+    /// // Data: {"key": {"nested_key": "nested_value"}}
+    /// let mut tree = db.get("key").unwrap();
+    /// tree.insert("nested_key_2", "nested_value_2").unwrap();
+    /// db.merge(tree).unwrap();
+    /// assert_eq!(
+    ///     db.get("key").unwrap().get("nested_key_2").unwrap().inner(),
+    ///     json!("nested_value_2")
+    /// );
+    /// ```
     pub fn merge(&mut self, tree: Tree) -> Result<(), NanoDBError> {
         let path = tree.path();
         let mut data = self._write_lock()?;
@@ -214,7 +259,14 @@ impl NanoDB {
         self.write()
     }
 
-    /// Write the current state of the JSON data to disk asynchronously
+    /// Writes the JSON data of the NanoDB instance to the file at its path.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - If the operation was successful.
+    /// * `Err(NanoDBError::RwLockWriteError)` - If there was an error acquiring the write lock.
+    /// * `Err(serde_json::Error)` - If there was an error serializing the JSON data.
+    /// * `Err(std::io::Error)` - If there was an error writing the data to the file.
     pub fn write(&mut self) -> Result<(), NanoDBError> {
         let data_guard = self
             .data
