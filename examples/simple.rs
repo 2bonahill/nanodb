@@ -7,7 +7,7 @@ use serde_json::{Map, Value};
 #[allow(dead_code)]
 #[tokio::main]
 async fn main() -> Result<()> {
-    let mut db = NanoDB::new("data.json")?;
+    let mut db = NanoDB::open("examples/data.json")?;
 
     // Setting
     db.insert("age", 40)?;

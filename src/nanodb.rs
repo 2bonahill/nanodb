@@ -50,9 +50,9 @@ impl NanoDB {
     /// # Examples
     ///
     /// ```text
-    /// let db = NanoDB::new("path/to/json/file.json").unwrap();
+    /// let db = NanoDB::open("path/to/json/file.json").unwrap();
     /// ```
-    pub fn new(path: impl Into<PathBuf>) -> Result<Self, NanoDBError> {
+    pub fn open(path: impl Into<PathBuf>) -> Result<Self, NanoDBError> {
         let path = path.into();
         let data = if path.exists() {
             let contents = std::fs::read_to_string(&path)?;

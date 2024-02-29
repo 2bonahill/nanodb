@@ -3,7 +3,7 @@
 //! ## Examples
 //! ```rust
 
-//! // let mut db = NanoDB::new("/path/to/data.json")?;
+//! // let mut db = NanoDB::open("/path/to/data.json")?;
 //! # use nanodb::nanodb::NanoDB;
 //! # use serde_json::json;
 //! # use serde_json::Value;
