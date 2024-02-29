@@ -36,15 +36,6 @@ impl Tree {
     /// # Returns
     ///
     /// * `Tree` - A new Tree instance with `value` as its inner value and `path` as its path.
-    ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// let path = vec![PathStep::Key("key".to_string())];
-    /// let tree = Tree::new(serde_json::json!(123), path.clone());
-    /// assert_eq!(tree.inner, serde_json::json!(123));
-    /// assert_eq!(tree.path, path);
-    /// ```
     pub(crate) fn new(value: serde_json::Value, path: Vec<PathStep>) -> Self {
         Tree { inner: value, path }
     }
@@ -60,14 +51,6 @@ impl Tree {
     /// * `Ok(Tree)` - A new Tree object that represents the value associated with `key`.
     /// * `Err(NanoDBError::NotAnObject)` - If the inner value of the tree is not an object.
     /// * `Err(anyhow!("Key not found: {}", key))` - If `key` does not exist in the JSON object.
-    ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// let tree = Tree::new(serde_json::json!({"key": "value"}));
-    /// let result = tree.get("key");
-    /// assert_eq!(result.unwrap().inner, serde_json::json!("value"));
-    /// ```
     pub fn get(&self, key: &str) -> Result<Tree, NanoDBError> {
         match &self.inner {
             serde_json::Value::Object(map) => {
@@ -96,14 +79,6 @@ impl Tree {
     /// * `Ok(Tree)` - A new Tree object that represents the value at `index`.
     /// * `Err(NanoDBError::NotAnArray)` - If the inner value of the tree is not an array.
     /// * `Err(anyhow!("Index out of bounds: {}", index))` - If `index` is out of bounds of the array.
-    ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// let tree = Tree::new(serde_json::json!([1, 2, 3]));
-    /// let result = tree.at(1);
-    /// assert_eq!(result.unwrap().inner, serde_json::json!(2));
-    /// ```
     pub fn at(&self, index: usize) -> Result<Tree, NanoDBError> {
         match &self.inner {
             serde_json::Value::Array(arr) => {
@@ -134,28 +109,6 @@ impl Tree {
     /// # Returns
     ///
     /// * `TreeType` - The type of the inner value of the tree. This can be one of `Null`, `Bool`, `Number`, `String`, `Array`, or `Object`.
-    ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// let tree = Tree::new(serde_json::json!(null));
-    /// assert_eq!(tree.tree_type(), TreeType::Null);
-    ///
-    /// let tree = Tree::new(serde_json::json!(true));
-    /// assert_eq!(tree.tree_type(), TreeType::Bool);
-    ///
-    /// let tree = Tree::new(serde_json::json!(123));
-    /// assert_eq!(tree.tree_type(), TreeType::Number);
-    ///
-    /// let tree = Tree::new(serde_json::json!("hello"));
-    /// assert_eq!(tree.tree_type(), TreeType::String);
-    ///
-    /// let tree = Tree::new(serde_json::json!([1, 2, 3]));
-    /// assert_eq!(tree.tree_type(), TreeType::Array);
-    ///
-    /// let tree = Tree::new(serde_json::json!({"key": "value"}));
-    /// assert_eq!(tree.tree_type(), TreeType::Object);
-    /// ```
     pub fn tree_type(&self) -> TreeType {
         match &self.inner {
             serde_json::Value::Null => TreeType::Null,
@@ -165,6 +118,34 @@ impl Tree {
             serde_json::Value::Array(_) => TreeType::Array,
             serde_json::Value::Object(_) => TreeType::Object,
         }
+    }
+
+    /// Inserts a key-value pair into the inner JSON object of the Tree instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - The key to insert the value for.
+    /// * `value` - The value to insert. This value must implement the `Serialize` trait.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Tree)` - The Tree instance itself after the insertion. This allows for method chaining.
+    /// * `Err(NanoDBError::SerializationError)` - If there was an error serializing `value`.
+    ///
+    /// # Examples
+    ///
+    /// ```ignore
+    /// let mut tree = Tree::new(serde_json::json!({}), vec![]);
+    /// tree.insert("key", "value").unwrap();
+    /// assert_eq!(tree.inner, serde_json::json!({"key": "value"}));
+    /// ```
+    pub fn insert<T: Serialize>(&mut self, key: &str, value: T) -> Result<Tree, NanoDBError> {
+        let value = serde_json::to_value(value)?;
+        self.inner
+            .as_object_mut()
+            .unwrap()
+            .insert(key.to_string(), value);
+        Ok(self.clone())
     }
 
     /// Pushes a value to the tree if it's an array.
@@ -207,14 +188,6 @@ impl Tree {
     ///
     /// * `Ok(Tree)` - A new Tree object that represents the current state of the tree after the function has been applied to each element.
     /// * `Err(NanoDBError::NotAnArray)` - If the inner value of the tree is not an array.
-    ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// let mut tree = Tree::new(serde_json::json!([1, 2, 3]));
-    /// let result = tree.for_each(|x| *x = serde_json::json!(*x.as_i64().unwrap() + 1));
-    /// assert_eq!(result.unwrap().inner, serde_json::json!([2, 3, 4]));
-    /// ```
     pub fn array_for_each<F>(&mut self, f: F) -> Result<Tree, NanoDBError>
     where
         F: FnMut(&mut serde_json::Value),
@@ -234,14 +207,6 @@ impl Tree {
     ///
     /// * `Ok(usize)` - The length of the array if the inner value of the tree is an array.
     /// * `Err(NanoDBError::NotAnArray)` - If the inner value of the tree is not an array.
-    ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// let tree = Tree::new(serde_json::json!([1, 2, 3]));
-    /// let result = tree.array_len();
-    /// assert_eq!(result.unwrap(), 3);
-    /// ```
     pub fn array_len(&self) -> Result<usize, NanoDBError> {
         match &self.inner {
             serde_json::Value::Array(arr) => Ok(arr.len()),
