@@ -35,18 +35,18 @@
 //! let address: Address = db.get("address").unwrap().into().unwrap();
 //!
 //! // Tree method (a tree consists of a part of the JSON object contained in the database)
-//! let number_of_fruits = db.get("fruits").unwrap().array_len().unwrap();
-//! let fruits = db.get("fruits").unwrap().array_push("mango").unwrap();
+//! let number_of_fruits = db.get("fruits").unwrap().len().unwrap();
+//! let fruits = db.get("fruits").unwrap().push("mango").unwrap();
 //! let numbers = db
 //!     .get("numbers").unwrap()
-//!     .array_for_each(|v| {
+//!     .for_each(|v| {
 //!         *v = Value::from(v.as_i64().unwrap() + 2i64);
 //!     })
 //!     .unwrap();
 //! // db.merge(numbers).unwrap();
 //!
 //! // Merge (after manipulation, the tree can be merged back into the database)
-//! let fruits = db.get("fruits").unwrap().array_push("coconut").unwrap();
+//! let fruits = db.get("fruits").unwrap().push("coconut").unwrap();
 //! // db.merge(fruits).unwrap();
 //! let address = db.get("address").unwrap().insert("zip", "12345").unwrap();
 //! db.merge(address).unwrap();

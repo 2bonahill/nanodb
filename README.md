@@ -9,7 +9,7 @@ NanoDB is a simple, lightweight, and easy-to-use JSON database for Rust. It is d
 use nanodb::nanodb::NanoDB;
 
 // Init a new database
-let mut db = NanoDB::new("/path/to/data.json")?;
+let mut db = NanoDB::open("/path/to/data.json")?;
 
 // In memory data manipulation
 db.insert("age", 40)?;
@@ -29,18 +29,18 @@ let fruits_value_tree: String = db.get("fruits")?.at(1)?.into()?;
 let address: Map<String, Value> = db.get("address")?.into()?;
 
 // Tree method (a tree consists of a part of the JSON object contained in the database)
-let number_of_fruits = db.get("fruits")?.array_len()?;
-let fruits = db.get("fruits")?.array_push("mango")?;
+let number_of_fruits = db.get("fruits")?.len()?;
+let fruits = db.get("fruits")?.push("mango")?;
 let numbers = db
     .get("numbers")?
-    .array_for_each(|v| {
+    .for_each(|v| {
         *v = Value::from(v.as_i64()? + 2i64);
     })?;
 
 // Merge (after manipulation, the tree can be merged back into the database)
 db.merge(numbers)?; 
 
-let fruits = db.get("fruits")?.array_push("coconut")?;
+let fruits = db.get("fruits")?.push("coconut")?;
 db.merge(fruits)?;
 
 let address = db.get("address")?.insert("zip", "12345")?;

@@ -23,18 +23,18 @@ async fn main() -> Result<(), NanoDBError> {
     let address: Map<String, Value> = db.get("address")?.into()?;
 
     // Tree methods
-    let number_of_fruits = db.get("fruits")?.array_len()?;
-    let fruits = db.get("fruits")?.array_push("mango")?;
+    let number_of_fruits = db.get("fruits")?.len()?;
+    let fruits = db.get("fruits")?.push("mango")?;
     let numbers = db
         .get("numbers")?
-        .array_for_each(|v| {
+        .for_each(|v| {
             *v = Value::from(v.as_i64().unwrap() + 2i64);
         })
         .unwrap();
     db.merge_and_write(numbers)?;
 
     // Merge
-    let fruits = db.get("fruits")?.array_push("coconut")?;
+    let fruits = db.get("fruits")?.push("coconut")?;
     db.merge(fruits)?;
     let address = db.get("address")?.insert("zip", "12345")?;
     db.merge(address)?;
