@@ -279,7 +279,14 @@ impl NanoDB {
         Ok(())
     }
 
-    /// Write the current state of the JSON data to disk asynchronously
+    /// Asynchronously writes the JSON data of the NanoDB instance to the file at its path.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - If the operation was successful.
+    /// * `Err(NanoDBError::RwLockWriteError)` - If there was an error acquiring the write lock.
+    /// * `Err(serde_json::Error)` - If there was an error serializing the JSON data.
+    /// * `Err(tokio::io::Error)` - If there was an error writing the data to the file.
     pub async fn write_async(&self) -> Result<(), NanoDBError> {
         let data_guard = self
             .data
@@ -300,6 +307,15 @@ impl NanoDB {
         self.data
             .read()
             .map_err(|e| NanoDBError::RwLockReadError(e.to_string()))
+    }
+}
+
+impl Clone for NanoDB {
+    fn clone(&self) -> Self {
+        Self {
+            path: self.path.clone(),
+            data: self.data.clone(),
+        }
     }
 }
 

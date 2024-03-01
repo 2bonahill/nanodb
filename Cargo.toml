@@ -3,7 +3,12 @@ name = "nanodb"
 version = "0.1.0"
 keywords = ["database", "storage", "embedded", "json"]
 categories = ["database", "database-implementations", "data-structures"]
-authors = ["Tobias"]
+description = "A simple, embedded, JSON-based database"
+readme = "README.md"
+repository = "https://github.com/2bonahill/nanodb"
+license = "MIT"
+license-file = "LICENSE"
+authors = ["2bonahill"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -16,4 +21,4 @@ thiserror = "1.0.57"
 tokio = { version = "1.36.0", features = ["full"] }
 
 [dev-dependencies]
-
+tokio = { version = "1.36.0", features = ["full"] }
