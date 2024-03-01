@@ -1,4 +1,4 @@
-mod simple;
+mod sync;
 
 use nanodb::{error::NanoDBError, nanodb::NanoDB};
 
@@ -33,24 +33,6 @@ async fn main() -> Result<(), NanoDBError> {
     }
 
     println!("All threads have completed.");
-
-    // // Tokio Threads
-    // let mut handles = Vec::new();
-    // for i in 0..10 {
-    //     let mut db_clone = db.clone();
-    //     let handle = tokio::spawn(async move {
-    //         let mut numbers = db_clone.get("numbers").unwrap();
-    //         numbers.push(i).unwrap();
-    //         db_clone.merge(numbers).unwrap();
-    //         db_clone.write_async().await.unwrap();
-    //     });
-    //     handles.push(handle);
-    // }
-
-    // // Await all tasks to complete
-    // for handle in handles {
-    //     handle.await.unwrap(); // `await` makes sure the program waits for the task to finish
-    // }
 
     Ok(())
 }

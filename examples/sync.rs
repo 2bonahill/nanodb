@@ -7,6 +7,12 @@ use serde_json::{Map, Value};
 #[allow(dead_code)]
 #[tokio::main]
 async fn main() -> Result<(), NanoDBError> {
+    single_threading().await?;
+    multi_threading().await?;
+    Ok(())
+}
+
+async fn single_threading() -> Result<(), NanoDBError> {
     let mut db = NanoDB::open("examples/data.json")?;
 
     // Setting
@@ -39,6 +45,34 @@ async fn main() -> Result<(), NanoDBError> {
     let address = db.get("address")?.insert("zip", "12345")?;
     db.merge(address)?;
     db.write()?;
+
+    Ok(())
+}
+
+async fn multi_threading() -> Result<(), NanoDBError> {
+    let db = NanoDB::open("examples/data.json")?;
+
+    let mut handles = Vec::new();
+
+    // Standard Threads
+    for i in 0..1000 {
+        let mut db_clone = db.clone();
+        let handle = std::thread::spawn(move || {
+            // db.insert("age", i).unwrap();
+            let mut fruits = db_clone.get("fruits").unwrap();
+            fruits.push("hallo").unwrap();
+            db_clone.merge(fruits).unwrap();
+            db_clone.write().unwrap();
+        });
+        handles.push(handle);
+    }
+
+    // Await all tasks to complete
+    for handle in handles {
+        handle.join().unwrap();
+    }
+
+    println!("All threads have completed.");
 
     Ok(())
 }

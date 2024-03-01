@@ -1,4 +1,4 @@
-mod simple;
+mod sync;
 
 use nanodb::{error::NanoDBError, nanodb_v2::NanoDB};
 
