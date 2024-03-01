@@ -55,4 +55,5 @@
 
 pub mod error;
 pub mod nanodb;
+pub mod nanodb_v2;
 pub mod tree;
