@@ -20,7 +20,6 @@ async fn main() -> Result<(), NanoDBError> {
 
     // // Simple getter
     let age: i64 = db.get("age").await?.into()?;
-    dbg!(age);
     let city: String = db.get("address").await?.get("city")?.into()?;
     let fruits_value_tree: String = db.get("fruits").await?.at(1)?.into()?;
     let address: Map<String, Value> = db.get("address").await?.into()?;
@@ -44,11 +43,13 @@ async fn main() -> Result<(), NanoDBError> {
     db.merge(address).await?;
     db.write().await?;
 
+    // Updates
     dbg!("halloooooo");
-    let mut x = db.update("key").await?;
-    dbg!(&x);
-    x.get("fruits")?.at(0)?;
-    dbg!(&x);
+    let mut x = db.update().await?;
+    let y = x.get("fruits")?.at(1)?;
+    let f: String = GuardedTreeOps::into(x)?;
+
+    dbg!(&f);
 
     Ok(())
 }

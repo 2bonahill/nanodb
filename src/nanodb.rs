@@ -6,7 +6,7 @@ use tokio::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::{
     error::NanoDBError,
-    guarded_tree::{GuardedTree, WriteGuardedTree},
+    guarded_tree::{GuardedTree, ReadGuardedTree, WriteGuardedTree},
     tree::{PathStep, Tree},
 };
 
@@ -169,13 +169,18 @@ impl NanoDB {
         Ok(())
     }
 
-    pub async fn update(&mut self, key: &str) -> Result<GuardedTree<'_>, NanoDBError> {
-        let wgt = GuardedTree::WriteGuarded(WriteGuardedTree::new(
+    pub async fn update(&mut self) -> Result<GuardedTree<'_>, NanoDBError> {
+        Ok(GuardedTree::WriteGuarded(WriteGuardedTree::new(
             self._write_lock().await?,
-            vec![PathStep::Key(key.to_string())],
-        ));
+            vec![],
+        )))
+    }
 
-        Ok(wgt)
+    pub async fn read(&mut self) -> Result<GuardedTree<'_>, NanoDBError> {
+        Ok(GuardedTree::ReadGuarded(ReadGuardedTree::new(
+            self._read_lock().await?,
+            vec![],
+        )))
     }
 
     /// Merges a Tree into the JSON data of the NanoDB instance at a given path.
