@@ -1,6 +1,6 @@
 #![allow(unused_variables)]
 
-use nanodb::{error::NanoDBError, nanodb::NanoDB};
+use nanodb::error::NanoDBError;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 

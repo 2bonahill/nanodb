@@ -1,6 +1,4 @@
-mod sync;
-
-use nanodb::{error::NanoDBError, nanodb_v2::NanoDB};
+use nanodb::{error::NanoDBError, nanodb::NanoDB};
 
 extern crate nanodb;
 

@@ -1,6 +1,6 @@
 #![allow(unused_variables)]
 
-use nanodb::{error::NanoDBError, nanodb_v2::NanoDB};
+use nanodb::{error::NanoDBError, guarded_tree::GuardedTreeOps, nanodb::NanoDB};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
@@ -43,6 +43,12 @@ async fn main() -> Result<(), NanoDBError> {
     let address = db.get("address").await?.insert("zip", "12345")?;
     db.merge(address).await?;
     db.write().await?;
+
+    dbg!("halloooooo");
+    let mut x = db.update("key").await?;
+    dbg!(&x);
+    x.get("fruits")?.at(0)?;
+    dbg!(&x);
 
     Ok(())
 }
