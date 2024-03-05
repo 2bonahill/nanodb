@@ -183,14 +183,6 @@ impl Tree {
     ///
     /// * `Ok(Tree)` - The Tree instance itself after the insertion. This allows for method chaining.
     /// * `Err(NanoDBError::SerializationError)` - If there was an error serializing `value`.
-    ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// let mut tree = Tree::new(serde_json::json!({}), vec![]);
-    /// tree.insert("key", "value").unwrap();
-    /// assert_eq!(tree.inner, serde_json::json!({"key": "value"}));
-    /// ```
     pub fn insert<T: Serialize>(&mut self, key: &str, value: T) -> Result<Tree, NanoDBError> {
         let value = serde_json::to_value(value)?;
         self.inner
@@ -210,14 +202,6 @@ impl Tree {
     ///
     /// * `Ok(Tree)` - A new Tree object that represents the current state of the tree after the value has been pushed.
     /// * `Err(NanoDBError::NotAnArray)` - If the inner value of the tree is not an array.
-    ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// let mut tree = Tree::new(serde_json::json!([1, 2, 3]));
-    /// let result = tree.push(4);
-    /// assert_eq!(result.unwrap().inner, serde_json::json!([1, 2, 3, 4]));
-    /// ```
     pub fn push<T: Serialize>(&mut self, value: T) -> Result<Tree, NanoDBError> {
         let value = serde_json::to_value(value)?;
 
@@ -284,30 +268,29 @@ impl Tree {
 #[cfg(test)]
 mod tests {
 
+    use crate::trees::tree::Tree;
     use serde_json::{json, Value};
 
-    use crate::nanodb::NanoDB;
-
-    fn contents() -> String {
-        r#"{
+    fn value() -> Value {
+        serde_json::from_str(
+            r#"{
 			"key1": "value1",
-			"key2": "value2",
-			"key3": {
+			"key2": {
 				"inner_key1": "inner_value1",
 				"inner_key2": "inner_value2"
 			},
-			"key4": [1, 2, 3]
-		}"#
-        .to_string()
+			"key3": [1, 2, 3]
+		}"#,
+        )
+        .unwrap()
     }
 
     #[tokio::test]
     async fn test_tree_get() {
-        let db = NanoDB::new_from("/path/to/file.json", &contents()).unwrap();
-        let tree1 = db.data().await.unwrap();
-        assert_eq!(tree1.inner(), json!("value2"));
+        let tree1 = Tree::new(value(), vec![]).get("key1").unwrap();
+        assert_eq!(tree1.inner(), json!("value1"));
 
-        let tree2 = db.data().await.unwrap();
+        let tree2 = Tree::new(value(), vec![]).get("key2").unwrap();
         assert_eq!(
             tree2.inner(),
             json!({
@@ -319,16 +302,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_tree_at() {
-        let db = NanoDB::new_from("/path/to/file.json", &contents()).unwrap();
-        let tree = db.data().await.unwrap();
+        let tree = Tree::new(value(), vec![]).get("key3").unwrap();
         let tree = tree.at(1).unwrap();
         assert_eq!(tree.inner(), serde_json::json!(2));
     }
 
     #[tokio::test]
     async fn test_tree_insert() {
-        let db: NanoDB = NanoDB::new_from("/path/to/file.json", &contents()).unwrap();
-        let mut tree = db.data().await.unwrap();
+        let mut tree = Tree::new(value(), vec![]);
         tree.insert("new_key", "new_value").unwrap();
         let tree = tree.get("new_key").unwrap();
         assert_eq!(tree.inner(), serde_json::json!("new_value"));
@@ -336,8 +317,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_push() {
-        let db = NanoDB::new_from("/path/to/file.json", &contents()).unwrap();
-        let mut tree = db.data().await.unwrap(); // key4
+        let mut tree = Tree::new(value(), vec![]).get("key3").unwrap();
         tree.push(10).unwrap();
         assert!(tree
             .inner()
@@ -347,21 +327,17 @@ mod tests {
     }
     #[tokio::test]
     async fn test_tree_for_each() {
-        let mut db = NanoDB::new_from("/path/to/file.json", &contents()).unwrap();
-        let mut tree = db.data().await.unwrap(); // key 4
+        let mut tree = Tree::new(value(), vec![]).get("key3").unwrap();
         tree.for_each(|v| {
             *v = Value::from(v.as_i64().unwrap() + 2i64);
         })
         .unwrap();
-        db.merge(tree).await.unwrap();
-        let tree = db.data().await.unwrap();
         assert_eq!(tree.inner(), json!([3, 4, 5]));
     }
 
     #[tokio::test]
     async fn test_tree_len() {
-        let db = NanoDB::new_from("/path/to/file.json", &contents()).unwrap();
-        let tree = db.data().await.unwrap();
+        let tree = Tree::new(value(), vec![]).get("key3").unwrap();
         assert_eq!(tree.len().unwrap(), 3);
     }
 }

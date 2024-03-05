@@ -1,10 +1,8 @@
 #![allow(unused_variables)]
 
 use nanodb::{error::NanoDBError, nanodb::NanoDB};
-use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
-#[allow(dead_code)]
 #[tokio::main]
 async fn main() -> Result<(), NanoDBError> {
     let mut db = NanoDB::open("examples/data.json")?;
@@ -24,7 +22,7 @@ async fn main() -> Result<(), NanoDBError> {
     let fruits_value_tree: String = db.data().await?.get("fruits")?.at(1)?.into()?;
     let address: Map<String, Value> = db.data().await?.get("address")?.into()?;
 
-    // // Tree methods
+    // Tree methods
     let number_of_fruits = db.data().await?.get("fruits")?.len()?;
     let fruits = db.data().await?.get("fruits")?.push("mango")?;
     let numbers = db
@@ -37,7 +35,7 @@ async fn main() -> Result<(), NanoDBError> {
         .unwrap();
     db.merge_and_write(numbers).await?;
 
-    // // Merge
+    // Merge
     let fruits = db.data().await?.get("fruits")?.push("coconut")?;
     db.merge(fruits).await?;
     let address = db.data().await?.get("address")?.insert("zip", "12345")?;
@@ -48,26 +46,15 @@ async fn main() -> Result<(), NanoDBError> {
     let db = NanoDB::open("examples/data.json")?;
     let fruits: Vec<String> = db.read().await?.get("fruits")?.into()?;
     let fruit_at_position_0: String = db.read().await?.get("fruits")?.at(0)?.into()?;
-    // dbg!((&fruits, &fruit_at_position_0));
 
     // Atomic writer
-    dbg!("hey there from atomic writer");
     let mut db = NanoDB::open("examples/data.json")?;
-    // db.update().await?.insert("writer", "hi from writer")?;
+    db.update().await?.insert("writer", "hi from writer")?;
     db.update()
         .await?
         .get("address")?
         .insert("address-hi", "for address: hi from writer")?;
-
-    // db.write().await?;
-
-    // read again
+    db.write().await?;
 
     Ok(())
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Q {
-    item: String,
-    quantity: i32,
 }

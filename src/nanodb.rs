@@ -122,20 +122,8 @@ impl NanoDB {
     /// * `Ok(Tree)` - A new Tree object that represents the value associated with `key`.
     /// * `Err(NanoDBError::RwLockReadError)` - If there was an error acquiring the read lock.
     /// * `Err(NanoDBError::KeyNotFound(key))` - If `key` does not exist in the JSON data.
-    /// # Examples
-    ///
-    /// ```ignore
-    /// # use nanodb::nanodb::NanoDB;
-    /// # use serde_json::json;
-    /// # let db = NanoDB::doctest_new_from("/path/to/file.json", r#"{"key": "value"}"#).unwrap();
-    /// // Data: {"key": "value"}
-    /// assert_eq!(db.get("key").unwrap().inner(), json!("value"));
-    /// ```
     pub async fn data(&self) -> Result<Tree, NanoDBError> {
         let data = self._read_lock().await?;
-        // let value = data
-        //     .get(key)
-        //     .ok_or_else(|| NanoDBError::KeyNotFound(key.to_string()))?;
         Ok(Tree::new(data.clone(), vec![]))
     }
 
@@ -181,16 +169,6 @@ impl NanoDB {
     /// * `Ok(())` - If the operation was successful.
     /// * `Err(NanoDBError::RwLockReadError)` - If there was an error acquiring the write lock.
     /// * `Err(serde_json::Error)` - If there was an error serializing `value`.
-    ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// # use nanodb::nanodb::NanoDB;
-    /// # use serde_json::json;
-    /// # let mut db = NanoDB::doctest_new_from("/path/to/file.json", r#"{"key": "value"}"#).unwrap();
-    /// db.insert("key", "value");
-    /// db.insert("key2", [1,2,3]);
-    /// ```
     pub async fn insert<T: Serialize>(&mut self, key: &str, value: T) -> Result<(), NanoDBError> {
         let mut data = self._write_lock().await?;
         let value = serde_json::to_value(value)?;
@@ -213,23 +191,7 @@ impl NanoDB {
     ///
     /// # Examples
     ///
-    /// ```
-    /// # use nanodb::nanodb::NanoDB;
-    /// # use serde_json::json;
-    /// # let mut db = NanoDB::doctest_new_from(
-    /// #    "/path/to/file.json",
-    /// #    r#"{"key": {"nested_key": "nested_value"}}"#,
-    /// # )
-    /// # .unwrap();
-    /// // Data: {"key": {"nested_key": "nested_value"}}
-    /// let mut tree = db.get("key").unwrap();
-    /// tree.insert("nested_key_2", "nested_value_2").unwrap();
-    /// db.merge(tree).unwrap();
-    /// assert_eq!(
-    ///     db.get("key").unwrap().get("nested_key_2").unwrap().inner(),
-    ///     json!("nested_value_2")
-    /// );
-    /// ```
+    /// See the `examples/single_threaded.rs` file for examples.
     pub async fn merge(&mut self, tree: Tree) -> Result<(), NanoDBError> {
         let path = tree.path();
         let mut data = self._write_lock().await?;
