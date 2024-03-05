@@ -265,6 +265,20 @@ impl Tree {
             _ => Err(NanoDBError::NotAnArray(self.path_string())),
         }
     }
+
+    /// Checks if the inner JSON array of the Tree instance is empty.
+    ///
+    /// # Returns
+    ///
+    /// * `true` - If the inner JSON value empty.
+    /// * `false` - If the inner JSON value is not empty.
+    pub fn is_empty(&self) -> bool {
+        match &self.inner {
+            serde_json::Value::Array(arr) => arr.is_empty(),
+            serde_json::Value::Object(obj) => obj.is_empty(),
+            _ => false,
+        }
+    }
 }
 
 #[cfg(test)]

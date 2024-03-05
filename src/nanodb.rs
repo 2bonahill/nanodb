@@ -83,14 +83,14 @@ impl NanoDB {
     /// * `Err(NanoDBError::FileWriteError)` - If there was an error writing to the file.
     /// * `Err(serde_json::Error)` - If there was an error parsing `contents` as JSON.
     pub fn new_from(path: impl Into<PathBuf>, contents: &str) -> Result<Self, NanoDBError> {
-        let data = serde_json::from_str(&contents)?;
+        let data = serde_json::from_str(contents)?;
         let _path: PathBuf;
         if cfg!(test) {
             let tmp_dir = tempdir()?;
             _path = tmp_dir.path().join("my_file.json");
         } else {
             _path = path.into();
-            std::fs::write(&_path, &contents)?;
+            std::fs::write(&_path, contents)?;
         }
         Ok(Self {
             path: _path,
@@ -102,10 +102,9 @@ impl NanoDB {
         _path: impl Into<PathBuf>,
         contents: &str,
     ) -> Result<Self, NanoDBError> {
-        let data = serde_json::from_str(&contents)?;
-        let _path: PathBuf;
+        let data = serde_json::from_str(contents)?;
         let tmp_dir = tempdir()?;
-        _path = tmp_dir.path().join("my_file.json");
+        let _path = tmp_dir.path().join("my_file.json");
         Ok(Self {
             path: _path,
             data: Arc::new(RwLock::new(data)),

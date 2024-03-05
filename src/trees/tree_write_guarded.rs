@@ -50,7 +50,7 @@ impl<'a> WriteGuardedTree<'a> {
     /// * `Ok(&mut Self)` - The TreeWriteGuarded instance itself after the retrieval. This allows for method chaining.
     /// * `Err(NanoDBError::InvalidJSONPath)` - If the path to the key in the JSON data is invalid.
     pub fn get(&mut self, key: &str) -> Result<&mut Self, NanoDBError> {
-        self.tree = self.tree.clone().get(key)?;
+        self.tree = self.tree.get(key)?;
         Ok(self)
     }
 
@@ -66,7 +66,7 @@ impl<'a> WriteGuardedTree<'a> {
     /// * `Err(NanoDBError::InvalidJSONPath)` - If the path to the index in the JSON data is invalid.
     /// * `Err(NanoDBError::IndexOutOfBounds)` - If the index is out of bounds.
     pub fn at(&mut self, index: usize) -> Result<&mut Self, NanoDBError> {
-        self.tree = self.tree.clone().at(index)?;
+        self.tree = self.tree.at(index)?;
         Ok(self)
     }
 
