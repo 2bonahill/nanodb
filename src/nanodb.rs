@@ -285,39 +285,52 @@ mod tests {
     use super::*;
     use serde_json::json;
 
-    // #[test]
-    // fn test_new_from() {
-    //     let db = NanoDB::new_from("/path/to/file.json", r#"{"key": "value"}"#).unwrap();
-    //     assert_eq!(db.get("key").unwrap().inner(), json!("value"));
-    // }
+    #[tokio::test]
+    async fn test_new_from() {
+        let db = NanoDB::new_from("/path/to/file.json", r#"{"key": "value"}"#).unwrap();
+        assert_eq!(
+            db.data().await.unwrap().get("key").unwrap().inner(),
+            json!("value")
+        );
+    }
 
-    // #[test]
-    // fn test_insert() {
-    //     let mut db = NanoDB::new_from("/path/to/file.json", r#"{}"#).unwrap();
-    //     db.insert("new_key", "new_value").unwrap();
-    //     assert_eq!(db.get("new_key").unwrap().inner(), json!("new_value"));
-    // }
+    #[tokio::test]
+    async fn test_insert() {
+        let mut db = NanoDB::new_from("/path/to/file.json", r#"{}"#).unwrap();
+        db.insert("new_key", "new_value").await.unwrap();
+        assert_eq!(
+            db.data().await.unwrap().get("new_key").unwrap().inner(),
+            json!("new_value")
+        );
+    }
 
-    // #[test]
-    // fn test_get() {
-    //     let db = NanoDB::new_from("/path/to/file.json", r#"{"key": "value"}"#).unwrap();
-    //     let result = db.get("key").unwrap();
-    //     assert_eq!(result.inner(), json!("value"));
-    // }
+    #[tokio::test]
+    async fn test_get() {
+        let db = NanoDB::new_from("/path/to/file.json", r#"{"key": "value"}"#).unwrap();
+        let result = db.data().await.unwrap().get("key").unwrap();
+        assert_eq!(result.inner(), json!("value"));
+    }
 
-    // #[test]
-    // fn test_merge() {
-    //     let mut db = NanoDB::new_from(
-    //         "/path/to/file.json",
-    //         r#"{"key": {"nested_key": "nested_value"}}"#,
-    //     )
-    //     .unwrap();
-    //     let mut tree = db.get("key").unwrap();
-    //     tree.insert("nested_key_2", "nested_value_2").unwrap();
-    //     db.merge(tree).unwrap();
-    //     assert_eq!(
-    //         db.get("key").unwrap().get("nested_key_2").unwrap().inner(),
-    //         json!("nested_value_2")
-    //     );
-    // }
+    #[tokio::test]
+    async fn test_merge() {
+        let mut db = NanoDB::new_from(
+            "/path/to/file.json",
+            r#"{"key": {"nested_key": "nested_value"}}"#,
+        )
+        .unwrap();
+        let mut tree = db.data().await.unwrap().get("key").unwrap();
+        tree.insert("nested_key_2", "nested_value_2").unwrap();
+        db.merge(tree).await.unwrap();
+        assert_eq!(
+            db.data()
+                .await
+                .unwrap()
+                .get("key")
+                .unwrap()
+                .get("nested_key_2")
+                .unwrap()
+                .inner(),
+            json!("nested_value_2")
+        );
+    }
 }
