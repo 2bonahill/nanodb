@@ -6,7 +6,14 @@ use crate::error::NanoDBError;
 
 use super::tree::{PathStep, Tree};
 
-// Define the WriteGuardedTree struct
+/// A struct representing a write-guarded tree.
+///
+/// This struct contains a write lock guard and a tree. The write lock guard ensures that only one thread can modify the tree at a time.
+///
+/// # Fields
+///
+/// * `_guard` - The write lock guard. This is not directly used, but its existence ensures that the tree cannot be modified by other threads.
+/// * `inner` - The tree that is being guarded.
 #[derive(Debug)]
 pub struct WriteGuardedTree<'a> {
     _guard: RwLockWriteGuard<'a, Value>,
@@ -14,7 +21,16 @@ pub struct WriteGuardedTree<'a> {
 }
 
 impl<'a> WriteGuardedTree<'a> {
-    // Constructor for a WriteGuardedTree
+    /// Creates a new WriteGuardedTree instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `guard` - The write lock guard. This is not directly used, but its existence ensures that the tree cannot be modified by other threads.
+    /// * `value` - The initial JSON value of the tree.
+    ///
+    /// # Returns
+    ///
+    /// * `WriteGuardedTree` - The new WriteGuardedTree instance.
     pub(crate) fn new(guard: RwLockWriteGuard<'a, Value>, value: Value) -> Self {
         let tree = Tree::new(value, vec![]);
         WriteGuardedTree {
