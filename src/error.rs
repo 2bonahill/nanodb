@@ -15,6 +15,8 @@ pub enum NanoDBError {
     RwLockWriteError(String),
     #[error("The value at '{0}' is not array")]
     NotAnArray(String),
+    #[error("The value at '{0}' does not have a length property")]
+    LenNotDefined(String),
     #[error("Not an object")]
     NotAnObject,
     #[error("Key '{0}' not found")]

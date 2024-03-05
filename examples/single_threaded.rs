@@ -5,7 +5,7 @@ use serde_json::{Map, Value};
 
 #[tokio::main]
 async fn main() -> Result<(), NanoDBError> {
-    let mut db = NanoDB::open("examples/data.json")?;
+    let mut db = NanoDB::open("examples/data/data.json")?;
 
     // Insert
     db.insert("age", 60).await?;
@@ -43,12 +43,12 @@ async fn main() -> Result<(), NanoDBError> {
     db.write().await?;
 
     // Atomic reader
-    let db = NanoDB::open("examples/data.json")?;
+    let db = NanoDB::open("examples/data/data.json")?;
     let fruits: Vec<String> = db.read().await?.get("fruits")?.into()?;
     let fruit_at_position_0: String = db.read().await?.get("fruits")?.at(0)?.into()?;
 
     // Atomic writer
-    let mut db = NanoDB::open("examples/data.json")?;
+    let mut db = NanoDB::open("examples/data/data.json")?;
     db.update().await?.insert("writer", "hi from writer")?;
     db.update()
         .await?
@@ -59,7 +59,6 @@ async fn main() -> Result<(), NanoDBError> {
         *v = Value::from(v.as_i64().unwrap() + 2i64);
     })?;
     db.write().await?;
-    dbg!(&db);
 
     Ok(())
 }

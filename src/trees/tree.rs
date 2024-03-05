@@ -246,6 +246,7 @@ impl Tree {
     pub fn len(&self) -> Result<usize, NanoDBError> {
         match &self.inner {
             serde_json::Value::Array(arr) => Ok(arr.len()),
+            serde_json::Value::Object(obj) => Ok(obj.len()),
             _ => Err(NanoDBError::NotAnArray(self.path_string())),
         }
     }

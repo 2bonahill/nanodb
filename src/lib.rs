@@ -23,12 +23,42 @@
 //! * **WriteGuardedTree**: A struct representing a write-guarded tree. This struct contains a write lock guard and a tree. The write lock guard ensures that the tree cannot be modified by other threads while it is being written to.
 
 //! ## Examples
+//! ### Basic usage
+//! ```rust,text
+//! use nanodb::{error::NanoDBError, nanodb::NanoDB};
+//! use serde_json::{Map, Value};
+//!
+//! async fn main() -> Result<(), NanoDBError> {
+//!     let mut db = NanoDB::open("examples/data.json")?;
+//!
+//!     // data() returns a simple in memory tree containing a clone of the JSON data
+//!     let fruit: String = db.data().await?.get("fruits")?.at(1)?.into()?;
+//!     let address: Map<String, Value> = db.data().await?.get("address")?.into()?;
+//!
+//!     // Basic inserts (similar to Rust's Map insert)
+//!	 	// Note: data is only held in memory until write() is called
+//!     db.insert("age", 60).await?;
+//!     db.insert("hobbies", vec!["ski", "tennis", "climbing"]).await?;
+//!
+//! 	// Basic updates
+//!     db.update().await?
+//!         .get("address")?
+//!         .insert("house-nr", 42)?;
+//!	 	db.update().await?.get("numbers")?.for_each(|v| {
+//!     	*v = Value::from(v.as_i64().unwrap() + 2i64);
+//!    	})?;
+//!
+//! 	// Write to disk
+//!     db.write().await?; // write data to disk
+//!
+//!     Ok(())
+//! }
+//! ```
 //! ### Simple setters and getters
 //! ```rust,text
 //! use nanodb::{error::NanoDBError, nanodb::NanoDB};
 //! use serde_json::{Map, Value};
 //!
-//! #[tokio::main]
 //! async fn main() -> Result<(), NanoDBError> {
 //!     let mut db = NanoDB::open("examples/data.json")?;
 //!
@@ -42,10 +72,8 @@
 //!	 	// Note: data is only held in memory until write() is called
 //!     db.insert("age", 60).await?;
 //!     db.insert("email", "johndoe@gmail.com").await?;
-//!     db.insert("fruits", vec!["apple", "banana", "orange"])
-//!         .await?;
-//!     db.insert("hobbies", vec!["ski", "tennis", "climbing"])
-//!         .await?;
+//!     db.insert("fruits", vec!["apple", "banana", "orange"]).await?;
+//!     db.insert("hobbies", vec!["ski", "tennis", "climbing"]).await?;
 //!     db.write().await?; // write data to disk
 //!
 //!     Ok(())
@@ -57,17 +85,13 @@
 //! use nanodb::{error::NanoDBError, nanodb::NanoDB};
 //! use serde_json::{Map, Value};
 //!
-//! #[tokio::main]
 //! async fn main() -> Result<(), NanoDBError> {
 //!     let mut db = NanoDB::open("examples/data.json")?;
 //!
 //!     // Tree methods
 //!     let number_of_fruits = db.data().await?.get("fruits")?.len()?;
 //!     let fruits = db.data().await?.get("fruits")?.push("mango")?;
-//!     let numbers = db
-//!         .data()
-//!         .await?
-//!         .get("numbers")?
+//!     let numbers = db.data().await?.get("numbers")?
 //!         .for_each(|v| {
 //!             *v = Value::from(v.as_i64().unwrap() + 2i64);
 //!         })
@@ -89,7 +113,6 @@
 //! use nanodb::{error::NanoDBError, nanodb::NanoDB};
 //! use serde_json::{Map, Value};
 //!
-//! #[tokio::main]
 //! async fn main() -> Result<(), NanoDBError> {
 //!     let mut db = NanoDB::open("examples/data.json")?;
 //!
@@ -100,11 +123,10 @@
 //!
 //!     // Atomic write operations
 //!     let mut db = NanoDB::open("examples/data.json")?;
-//!     db.update().await?.insert("writer", "hi from writer")?; // update() returns a write-guarded tree
-//!     db.update()
-//!         .await?
+//!     db.update().await?.insert("counter", 1)?; // update() returns a write-guarded tree
+//!     db.update().await?
 //!         .get("address")?
-//!         .insert("address-hi", "for address: hi from writer")?;
+//!         .insert("house-nr", 42)?;
 //!	 	db.update().await?.get("numbers")?.for_each(|v| {
 //!     	*v = Value::from(v.as_i64().unwrap() + 2i64);
 //!    	})?;

@@ -98,19 +98,6 @@ impl NanoDB {
         })
     }
 
-    pub fn doctest_new_from(
-        _path: impl Into<PathBuf>,
-        contents: &str,
-    ) -> Result<Self, NanoDBError> {
-        let data = serde_json::from_str(contents)?;
-        let tmp_dir = tempdir()?;
-        let _path = tmp_dir.path().join("my_file.json");
-        Ok(Self {
-            path: _path,
-            data: Arc::new(RwLock::new(data)),
-        })
-    }
-
     /// Retrieves the value associated with a given key in the JSON data of the NanoDB instance.
     ///
     /// # Arguments
