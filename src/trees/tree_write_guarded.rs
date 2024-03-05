@@ -162,4 +162,9 @@ impl<'a> WriteGuardedTree<'a> {
 
         Ok(self)
     }
+
+    /// get snapshot of the tree
+    pub fn tree(&self) -> &Tree {
+        &self.tree
+    }
 }

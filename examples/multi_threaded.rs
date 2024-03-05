@@ -4,51 +4,36 @@ extern crate nanodb;
 
 #[tokio::main]
 async fn main() -> Result<(), NanoDBError> {
-    // spawn a new task
-    // Use `tokio::spawn` to run asynchronous tasks
-    let db = NanoDB::open("examples/data.json")?;
+    let mut db = NanoDB::open("examples/data/data.json")?;
+    db.insert("counter", 0).await?;
+    // dbg!(&db);
 
-    // let mut handles = Vec::new();
-
-    // Standard Threads
-    // for i in 0..1000 {
-    //     let mut db_clone = db.clone();
-    //     let handle = std::thread::spawn(move || {
-    //         // db.insert("age", i).unwrap();
-    //         let mut fruits = db_clone.get("fruits").unwrap();
-    //         fruits.push("hallo").unwrap();
-    //         db_clone.merge(fruits).unwrap();
-    //         db_clone.write().unwrap();
-    //     });
-    //     handles.push(handle);
-    // }
-
-    // // Await all tasks to complete
-    // for handle in handles {
-    //     // handle.await.unwrap(); // `await` makes sure the program waits for the task to finish
-    //     // wait for all the handles to finish
-    //     handle.join().unwrap();
-    // }
-
-    println!("All threads have completed.");
-
-    // Tokio Threads
     let mut handles = Vec::new();
     for i in 0..10 {
-        let mut db_clone = db.clone();
+        dbg!(i);
+        let db_clone = db.clone();
         let handle = tokio::spawn(async move {
-            let mut numbers = db_clone.data().await.unwrap().get("numbers").unwrap();
-            // numbers.push(i).unwrap();
-            db_clone.merge(numbers).await.unwrap();
-            db_clone.write().await.unwrap();
+            let mut writer = db_clone.update().await.unwrap();
+            let current_counter: i64 = writer
+                .tree()
+                .clone()
+                .get("counter")
+                .unwrap()
+                .into()
+                .unwrap();
+
+            writer.insert("counter", current_counter + 1).unwrap();
         });
         handles.push(handle);
     }
 
     // Await all tasks to complete
+
     for handle in handles {
         handle.await.unwrap(); // `await` makes sure the program waits for the task to finish
     }
+
+    db.write().await?;
 
     Ok(())
 }
