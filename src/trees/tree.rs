@@ -111,14 +111,29 @@ impl Tree {
         }
     }
 
+    /// Returns a clone of the inner JSON value of the Tree instance.
+    ///
+    /// # Returns
+    ///
+    /// * `serde_json::Value` - A clone of the inner JSON value.
     pub fn inner(&self) -> serde_json::Value {
         self.inner.clone()
     }
 
-    pub fn path(&self) -> Vec<PathStep> {
+    /// Returns a clone of the path of the Tree instance.
+    ///
+    /// # Returns
+    ///
+    /// * `Vec<PathStep>` - A clone of the path.
+    pub(crate) fn path(&self) -> Vec<PathStep> {
         self.path.clone()
     }
 
+    /// Returns the path of the Tree instance as a dot-separated string.
+    ///
+    /// # Returns
+    ///
+    /// * `String` - The path as a dot-separated string.
     pub fn path_string(&self) -> String {
         self.path
             .iter()
@@ -127,6 +142,16 @@ impl Tree {
             .join(".")
     }
 
+    /// Converts the inner JSON value of the Tree instance into a specified type.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - The type to convert the JSON value into. This type must implement the `Deserialize` trait.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(T)` - The JSON value converted into the specified type.
+    /// * `Err(NanoDBError)` - If there was an error during the conversion.
     pub fn into<T: for<'de> Deserialize<'de>>(self) -> Result<T, NanoDBError> {
         serde_json::from_value(self.inner).map_err(Into::into)
     }

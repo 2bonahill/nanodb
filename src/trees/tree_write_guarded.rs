@@ -17,7 +17,7 @@ use super::tree::{PathStep, Tree};
 #[derive(Debug)]
 pub struct WriteGuardedTree<'a> {
     _guard: RwLockWriteGuard<'a, Value>,
-    inner: Tree,
+    tree: Tree,
 }
 
 impl<'a> WriteGuardedTree<'a> {
@@ -35,7 +35,7 @@ impl<'a> WriteGuardedTree<'a> {
         let tree = Tree::new(value, vec![]);
         WriteGuardedTree {
             _guard: guard,
-            inner: tree,
+            tree,
         }
     }
 
@@ -50,7 +50,7 @@ impl<'a> WriteGuardedTree<'a> {
     /// * `Ok(&mut Self)` - The TreeWriteGuarded instance itself after the retrieval. This allows for method chaining.
     /// * `Err(NanoDBError::InvalidJSONPath)` - If the path to the key in the JSON data is invalid.
     pub fn get(&mut self, key: &str) -> Result<&mut Self, NanoDBError> {
-        self.inner = self.inner.clone().get(key)?;
+        self.tree = self.tree.clone().get(key)?;
         Ok(self)
     }
 
@@ -66,7 +66,7 @@ impl<'a> WriteGuardedTree<'a> {
     /// * `Err(NanoDBError::InvalidJSONPath)` - If the path to the index in the JSON data is invalid.
     /// * `Err(NanoDBError::IndexOutOfBounds)` - If the index is out of bounds.
     pub fn at(&mut self, index: usize) -> Result<&mut Self, NanoDBError> {
-        self.inner = self.inner.clone().at(index)?;
+        self.tree = self.tree.clone().at(index)?;
         Ok(self)
     }
 
@@ -83,9 +83,9 @@ impl<'a> WriteGuardedTree<'a> {
     /// * `Err(NanoDBError::InvalidJSONPath)` - If the path to the key in the JSON data is invalid.
     /// * `Err(NanoDBError::IndexOutOfBounds)` - If an array index in the path is out of bounds.
     pub fn insert<T: Serialize>(&mut self, key: &str, value: T) -> Result<&mut Self, NanoDBError> {
-        self.inner = self.inner.insert(key, value)?;
+        self.tree = self.tree.clone().insert(key, value)?;
 
-        self.merge_from(self.inner.clone())?;
+        self.merge_from(self.tree.clone())?;
 
         Ok(self)
     }
@@ -101,7 +101,7 @@ impl<'a> WriteGuardedTree<'a> {
     /// * `Ok(T)` - The JSON object converted into the specified type.
     /// * `Err(serde_json::Error)` - If there was an error during the conversion.
     pub fn into<T: for<'de> serde::Deserialize<'de>>(&mut self) -> Result<T, serde_json::Error> {
-        serde_json::from_value(self.inner.inner())
+        serde_json::from_value(self.tree.inner())
     }
 
     /// Merges the JSON data from another Tree instance into this guarded instance.
@@ -110,7 +110,7 @@ impl<'a> WriteGuardedTree<'a> {
     ///
     /// * `other` - The other Tree instance to merge from.
     fn merge_from(&mut self, other: Tree) -> Result<&mut Self, NanoDBError> {
-        let path = self.inner.path();
+        let path = self.tree.path();
         let mut current = &mut *self._guard;
 
         for p in path {
