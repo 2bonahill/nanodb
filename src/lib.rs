@@ -15,12 +15,15 @@
 //! [dependencies]
 //! nanodb = "0.1.0"
 //! ```
+
 //! ## Trees
 //! NanoDB know three different types of trees:
-//! * **Tree**: A struct representing a tree. This struct contains a JSON value and a path. The JSON value is the actual data of the tree, and the path is the path to the current location in the tree.
+//! * **Tree**: A struct representing a read-only tree. This struct contains a clone of the DB's JSON value and a path. The JSON value is the actual data of the tree, and the path is the path to the current location in the tree.
 //! * **ReadGuardedTree**: A struct representing a read-guarded tree. This struct contains a read lock guard and a tree. The read lock guard ensures that the tree cannot be modified by other threads while it is being read.
 //! * **WriteGuardedTree**: A struct representing a write-guarded tree. This struct contains a write lock guard and a tree. The write lock guard ensures that the tree cannot be modified by other threads while it is being written to.
+
 //! ## Examples
+//! ### Simple setters and getters
 //! ```rust,text
 //! use nanodb::{error::NanoDBError, nanodb::NanoDB};
 //! use serde_json::{Map, Value};
@@ -29,20 +32,34 @@
 //! async fn main() -> Result<(), NanoDBError> {
 //!     let mut db = NanoDB::open("examples/data.json")?;
 //!
-//!     // Insert
-//!     db.insert("age", 60).await?;
-//!     db.insert("email", "johndoe@gmail.com").await?;
-//!     db.insert("fruits", vec!["apple", "banana", "orange"])
-//!         .await?;
-//!     db.insert("hobbies", vec!["ski", "tennis", "fitness", "climbing"])
-//!         .await?;
-//!     db.write().await?;
-//!
-//!     // Get
+//!     // data() returns a simple in memory tree containing a clone of the JSON data
 //!     let age: i64 = db.data().await?.get("age")?.into()?;
 //!     let city: String = db.data().await?.get("address")?.get("city")?.into()?;
 //!     let fruits_value_tree: String = db.data().await?.get("fruits")?.at(1)?.into()?;
 //!     let address: Map<String, Value> = db.data().await?.get("address")?.into()?;
+//!
+//!     // Basic inserts (similar to Rust's Map insert)
+//!	 	// Note: data is only held in memory until write() is called
+//!     db.insert("age", 60).await?;
+//!     db.insert("email", "johndoe@gmail.com").await?;
+//!     db.insert("fruits", vec!["apple", "banana", "orange"])
+//!         .await?;
+//!     db.insert("hobbies", vec!["ski", "tennis", "climbing"])
+//!         .await?;
+//!     db.write().await?; // write data to disk
+//!
+//!     Ok(())
+//! }
+//! ```
+
+//! ### Working with trees: editing and merging
+//! ```rust,text
+//! use nanodb::{error::NanoDBError, nanodb::NanoDB};
+//! use serde_json::{Map, Value};
+//!
+//! #[tokio::main]
+//! async fn main() -> Result<(), NanoDBError> {
+//!     let mut db = NanoDB::open("examples/data.json")?;
 //!
 //!     // Tree methods
 //!     let number_of_fruits = db.data().await?.get("fruits")?.len()?;
@@ -63,24 +80,39 @@
 //!     let address = db.data().await?.get("address")?.insert("zip", "12345")?;
 //!     db.merge(address).await?;
 //!     db.write().await?;
+//!     Ok(())
+//! }
+//! ```
+
+//! ### Atomic reader and writer
+//! ```rust,text
+//! use nanodb::{error::NanoDBError, nanodb::NanoDB};
+//! use serde_json::{Map, Value};
+//!
+//! #[tokio::main]
+//! async fn main() -> Result<(), NanoDBError> {
+//!     let mut db = NanoDB::open("examples/data.json")?;
 //!
 //!     // Atomic reader
 //!     let db = NanoDB::open("examples/data.json")?;
-//!     let fruits: Vec<String> = db.read().await?.get("fruits")?.into()?;
+//!     let fruits: Vec<String> = db.read().await?.get("fruits")?.into()?; // read() returns a read-guarded tree
 //!     let fruit_at_position_0: String = db.read().await?.get("fruits")?.at(0)?.into()?;
 //!
-//!     // Atomic writer
+//!     // Atomic write operations
 //!     let mut db = NanoDB::open("examples/data.json")?;
-//!     db.update().await?.insert("writer", "hi from writer")?;
+//!     db.update().await?.insert("writer", "hi from writer")?; // update() returns a write-guarded tree
 //!     db.update()
 //!         .await?
 //!         .get("address")?
 //!         .insert("address-hi", "for address: hi from writer")?;
+//!	 	db.update().await?.get("numbers")?.for_each(|v| {
+//!     	*v = Value::from(v.as_i64().unwrap() + 2i64);
+//!    	})?;
 //!     db.write().await?;
 //!
 //!     Ok(())
 //! }
-//!
+//! ```
 pub mod error;
 pub mod nanodb;
 pub mod trees;

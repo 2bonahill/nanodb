@@ -90,6 +90,27 @@ impl<'a> WriteGuardedTree<'a> {
         Ok(self)
     }
 
+    /// Applies a function to each element of the inner array of the tree.
+    ///
+    /// # Arguments
+    ///
+    /// * `f` - A mutable function that takes a mutable reference to a `serde_json::Value` and returns `()`.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Tree)` - A new Tree object that represents the current state of the tree after the function has been applied to each element.
+    /// * `Err(NanoDBError::NotAnArray)` - If the inner value of the tree is not an array.
+    pub fn for_each<F>(&mut self, f: F) -> Result<&mut Self, NanoDBError>
+    where
+        F: FnMut(&mut serde_json::Value),
+    {
+        self.tree = self.tree.clone().for_each(f)?;
+
+        self.merge_from(self.tree.clone())?;
+
+        Ok(self)
+    }
+
     /// Converts the inner JSON object of the TreeWriteGuarded instance into a specified type.
     ///
     /// # Type Parameters

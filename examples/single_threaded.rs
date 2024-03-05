@@ -55,6 +55,11 @@ async fn main() -> Result<(), NanoDBError> {
         .get("address")?
         .insert("address-hi", "for address: hi from writer")?;
     db.write().await?;
+    db.update().await?.get("numbers")?.for_each(|v| {
+        *v = Value::from(v.as_i64().unwrap() + 2i64);
+    })?;
+    db.write().await?;
+    dbg!(&db);
 
     Ok(())
 }
