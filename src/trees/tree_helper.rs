@@ -3,7 +3,7 @@ use serde_json::Value;
 
 use crate::{error::NanoDBError, trees::tree::PathStep};
 
-fn new_path_is_valid(
+fn _new_path_is_valid(
     data: &Value,
     path: &[PathStep],
     new_step: &PathStep,
@@ -46,7 +46,7 @@ fn new_path_is_valid(
     Ok(true)
 }
 
-fn goto<T: for<'de> Deserialize<'de>>(data: Value, path: Vec<PathStep>) -> Result<T, NanoDBError> {
+fn _goto<T: for<'de> Deserialize<'de>>(data: Value, path: Vec<PathStep>) -> Result<T, NanoDBError> {
     // get the right json field according to the path steps in path
     let data = path.iter().fold(data, |acc, step| match step {
         PathStep::Key(k) => acc.get(k).unwrap().clone(),

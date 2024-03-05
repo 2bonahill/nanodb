@@ -1,3 +1,4 @@
+use serde::Serialize;
 use serde_json::Value;
 use tokio::sync::RwLockWriteGuard;
 
@@ -30,6 +31,12 @@ impl<'a> WriteGuardedTree<'a> {
 
     pub fn at(&mut self, index: usize) -> Result<&mut Self, NanoDBError> {
         self.tree = self.tree.clone().at(index)?;
+        Ok(self)
+    }
+
+    pub fn insert<T: Serialize>(&mut self, key: &str, value: T) -> Result<&mut Self, NanoDBError> {
+        self.tree = self.tree.insert(key, value)?;
+        *self._guard = self.tree.inner();
         Ok(self)
     }
 
