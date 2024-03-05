@@ -9,7 +9,7 @@ use super::tree::Tree;
 #[derive(Debug)]
 pub struct ReadGuardedTree<'a> {
     _guard: RwLockReadGuard<'a, Value>,
-    tree: Tree,
+    inner: Tree,
 }
 
 impl<'a> ReadGuardedTree<'a> {
@@ -18,22 +18,22 @@ impl<'a> ReadGuardedTree<'a> {
         let tree = Tree::new(value, vec![]);
         ReadGuardedTree {
             _guard: guard,
-            tree,
+            inner: tree,
         }
     }
 
     // Implement methods specific to ReadGuardedTree here
     pub fn get(&mut self, key: &str) -> Result<&mut Self, NanoDBError> {
-        self.tree = self.tree.clone().get(key)?;
+        self.inner = self.inner.clone().get(key)?;
         Ok(self)
     }
 
     pub fn at(&mut self, index: usize) -> Result<&mut Self, NanoDBError> {
-        self.tree = self.tree.clone().at(index)?;
+        self.inner = self.inner.clone().at(index)?;
         Ok(self)
     }
 
     pub fn into<T: for<'de> serde::Deserialize<'de>>(&mut self) -> Result<T, serde_json::Error> {
-        serde_json::from_value(self.tree.inner())
+        serde_json::from_value(self.inner.inner())
     }
 }
