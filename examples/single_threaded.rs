@@ -51,14 +51,17 @@ async fn main() -> Result<(), NanoDBError> {
     // dbg!((&fruits, &fruit_at_position_0));
 
     // Atomic writer
+    dbg!("hey there from atomic writer");
     let mut db = NanoDB::open("examples/data.json")?;
-    db.update().await?.insert("writer", "hi from writer")?;
+    // db.update().await?.insert("writer", "hi from writer")?;
     db.update()
         .await?
         .get("address")?
-        .insert("writer", "for address: hi from writer")?;
-    dbg!(&db);
+        .insert("address-hi", "for address: hi from writer")?;
+
     // db.write().await?;
+
+    // read again
 
     Ok(())
 }
