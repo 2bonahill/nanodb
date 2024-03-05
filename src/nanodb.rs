@@ -6,8 +6,11 @@ use tokio::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::{
     error::NanoDBError,
-    guarded_tree::{GuardedTree, ReadGuardedTree, WriteGuardedTree},
-    tree::{PathStep, Tree},
+    trees::{
+        tree::{PathStep, Tree},
+        tree_read_guarded::ReadGuardedTree,
+        tree_write_guarded::WriteGuardedTree,
+    },
 };
 
 /// A struct representing a NanoDB instance.
@@ -129,15 +132,42 @@ impl NanoDB {
     /// // Data: {"key": "value"}
     /// assert_eq!(db.get("key").unwrap().inner(), json!("value"));
     /// ```
-    pub async fn get(&mut self, key: &str) -> Result<Tree, NanoDBError> {
+    pub async fn data(&self) -> Result<Tree, NanoDBError> {
         let data = self._read_lock().await?;
-        let value = data
-            .get(key)
-            .ok_or_else(|| NanoDBError::KeyNotFound(key.to_string()))?;
-        Ok(Tree::new(
-            value.clone(),
-            vec![PathStep::Key(key.to_string())],
-        ))
+        // let value = data
+        //     .get(key)
+        //     .ok_or_else(|| NanoDBError::KeyNotFound(key.to_string()))?;
+        Ok(Tree::new(data.clone(), vec![]))
+    }
+
+    /// Executes an atomic query to the db, ensuring that the query either fully completes
+    /// or is entirely rolled back in case of an error, maintaining the integrity of the database.
+    /// This function is designed to handle operations that must be executed as a single,
+    /// indivisible unit to ensure data consistency and reliability, such as transactions
+    /// involving multiple steps.
+    ///
+    /// Returns a read-guarded tree.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(ReadGuardedTree)` - A new ReadGuardedTree instance with the read lock and the JSON data.
+    /// * `Err(NanoDBError::RwLockReadError)` - If there was an error acquiring the read lock.
+    pub async fn read(&self) -> Result<ReadGuardedTree<'_>, NanoDBError> {
+        let read_guard = self._read_lock().await?;
+        let value: Value = read_guard.clone();
+        Ok(ReadGuardedTree::new(read_guard, value))
+    }
+
+    /// Asynchronously returns a write-guarded tree.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(GuardedTree)` - A new GuardedTree instance with the write lock and the JSON data.
+    /// * `Err(NanoDBError::RwLockWriteError)` - If there was an error acquiring the write lock.
+    pub async fn update(&self) -> Result<WriteGuardedTree<'_>, NanoDBError> {
+        let write_guard = self._write_lock().await?;
+        let value: Value = write_guard.clone();
+        Ok(WriteGuardedTree::new(write_guard, value))
     }
 
     /// Inserts a key-value pair into the JSON data of the NanoDB instance.
@@ -167,20 +197,6 @@ impl NanoDB {
         let value = serde_json::to_value(value)?;
         data.as_object_mut().unwrap().insert(key.to_string(), value);
         Ok(())
-    }
-
-    pub async fn update(&mut self) -> Result<GuardedTree<'_>, NanoDBError> {
-        Ok(GuardedTree::WriteGuarded(WriteGuardedTree::new(
-            self._write_lock().await?,
-            vec![],
-        )))
-    }
-
-    pub async fn read(&mut self) -> Result<GuardedTree<'_>, NanoDBError> {
-        Ok(GuardedTree::ReadGuarded(ReadGuardedTree::new(
-            self._read_lock().await?,
-            vec![],
-        )))
     }
 
     /// Merges a Tree into the JSON data of the NanoDB instance at a given path.
@@ -285,11 +301,11 @@ impl NanoDB {
         Ok(())
     }
 
-    async fn _write_lock(&mut self) -> Result<RwLockWriteGuard<'_, Value>, NanoDBError> {
+    async fn _write_lock(&self) -> Result<RwLockWriteGuard<'_, Value>, NanoDBError> {
         Ok(self.data.write().await)
     }
 
-    async fn _read_lock(&mut self) -> Result<RwLockReadGuard<'_, Value>, NanoDBError> {
+    async fn _read_lock(&self) -> Result<RwLockReadGuard<'_, Value>, NanoDBError> {
         Ok(self.data.read().await)
     }
 }

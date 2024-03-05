@@ -37,7 +37,7 @@ async fn main() -> Result<(), NanoDBError> {
     for i in 0..10 {
         let mut db_clone = db.clone();
         let handle = tokio::spawn(async move {
-            let mut numbers = db_clone.get("numbers").await.unwrap();
+            let mut numbers = db_clone.data().await.unwrap().get("numbers").unwrap();
             numbers.push(i).unwrap();
             db_clone.merge(numbers).await.unwrap();
             db_clone.write().await.unwrap();

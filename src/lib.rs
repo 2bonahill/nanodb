@@ -54,7 +54,5 @@
 //! ```
 
 pub mod error;
-pub mod guarded_tree;
-
 pub mod nanodb;
-pub mod tree;
+pub mod trees;

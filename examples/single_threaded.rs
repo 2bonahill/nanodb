@@ -1,6 +1,6 @@
 #![allow(unused_variables)]
 
-use nanodb::{error::NanoDBError, guarded_tree::GuardedTreeOps, nanodb::NanoDB};
+use nanodb::{error::NanoDBError, nanodb::NanoDB};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
@@ -9,7 +9,7 @@ use serde_json::{Map, Value};
 async fn main() -> Result<(), NanoDBError> {
     let mut db = NanoDB::open("examples/data.json")?;
 
-    // Setting
+    // Insert
     db.insert("age", 60).await?;
     db.insert("email", "johndoe@gmail.com").await?;
     db.insert("fruits", vec!["apple", "banana", "orange"])
@@ -18,18 +18,19 @@ async fn main() -> Result<(), NanoDBError> {
         .await?;
     db.write().await?;
 
-    // // Simple getter
-    let age: i64 = db.get("age").await?.into()?;
-    let city: String = db.get("address").await?.get("city")?.into()?;
-    let fruits_value_tree: String = db.get("fruits").await?.at(1)?.into()?;
-    let address: Map<String, Value> = db.get("address").await?.into()?;
+    // Get
+    let age: i64 = db.data().await?.get("age")?.into()?;
+    let city: String = db.data().await?.get("address")?.get("city")?.into()?;
+    let fruits_value_tree: String = db.data().await?.get("fruits")?.at(1)?.into()?;
+    let address: Map<String, Value> = db.data().await?.get("address")?.into()?;
 
     // // Tree methods
-    let number_of_fruits = db.get("fruits").await?.len()?;
-    let fruits = db.get("fruits").await?.push("mango")?;
+    let number_of_fruits = db.data().await?.get("fruits")?.len()?;
+    let fruits = db.data().await?.get("fruits")?.push("mango")?;
     let numbers = db
-        .get("numbers")
+        .data()
         .await?
+        .get("numbers")?
         .for_each(|v| {
             *v = Value::from(v.as_i64().unwrap() + 2i64);
         })
@@ -37,19 +38,17 @@ async fn main() -> Result<(), NanoDBError> {
     db.merge_and_write(numbers).await?;
 
     // // Merge
-    let fruits = db.get("fruits").await?.push("coconut")?;
+    let fruits = db.data().await?.get("fruits")?.push("coconut")?;
     db.merge(fruits).await?;
-    let address = db.get("address").await?.insert("zip", "12345")?;
+    let address = db.data().await?.get("address")?.insert("zip", "12345")?;
     db.merge(address).await?;
     db.write().await?;
 
-    // Updates
-    dbg!("halloooooo");
-    let mut x = db.update().await?;
-    let y = x.get("fruits")?.at(1)?;
-    let f: String = GuardedTreeOps::into(x)?;
-
-    dbg!(&f);
+    // Atomic reader
+    let db = NanoDB::open("examples/data.json")?;
+    let fruits: Vec<String> = db.read().await?.get("fruits")?.into()?;
+    let fruit_at_position_0: String = db.read().await?.get("fruits")?.at(0)?.into()?;
+    dbg!((&fruits, &fruit_at_position_0));
 
     Ok(())
 }
