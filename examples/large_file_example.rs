@@ -5,12 +5,11 @@ use serde_json::Value;
 async fn main() {
     let db = NanoDB::open("examples/data/large-file.json").unwrap();
 
-    let _number_of_actors = db.data().await.unwrap().len().unwrap();
+    let _number_of_actors = db.data().await.len().unwrap();
 
     let actor: Actor = db
         .data()
         .await
-        .unwrap()
         .at(0)
         .unwrap()
         .get("actor")

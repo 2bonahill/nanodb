@@ -13,7 +13,7 @@ async fn main() -> Result<(), NanoDBError> {
         dbg!(i);
         let db_clone = db.clone();
         let handle = tokio::spawn(async move {
-            let mut writer = db_clone.update().await.unwrap();
+            let mut writer = db_clone.update().await;
             let current_counter: i64 = writer
                 .tree()
                 .clone()

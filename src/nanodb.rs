@@ -109,9 +109,9 @@ impl NanoDB {
     /// * `Ok(Tree)` - A new Tree object that represents the value associated with `key`.
     /// * `Err(NanoDBError::RwLockReadError)` - If there was an error acquiring the read lock.
     /// * `Err(NanoDBError::KeyNotFound(key))` - If `key` does not exist in the JSON data.
-    pub async fn data(&self) -> Result<Tree, NanoDBError> {
-        let data = self._read_lock().await?;
-        Ok(Tree::new(data.clone(), vec![]))
+    pub async fn data(&self) -> Tree {
+        let data = self._read_lock().await;
+        Tree::new(data.clone(), vec![])
     }
 
     /// Executes an atomic query to the db, ensuring that the query either fully completes
@@ -126,10 +126,10 @@ impl NanoDB {
     ///
     /// * `Ok(ReadGuardedTree)` - A new ReadGuardedTree instance with the read lock and the JSON data.
     /// * `Err(NanoDBError::RwLockReadError)` - If there was an error acquiring the read lock.
-    pub async fn read(&self) -> Result<ReadGuardedTree<'_>, NanoDBError> {
-        let read_guard = self._read_lock().await?;
+    pub async fn read(&self) -> ReadGuardedTree<'_> {
+        let read_guard = self._read_lock().await;
         let value: Value = read_guard.clone();
-        Ok(ReadGuardedTree::new(read_guard, value))
+        ReadGuardedTree::new(read_guard, value)
     }
 
     /// Asynchronously returns a write-guarded tree.
@@ -138,10 +138,10 @@ impl NanoDB {
     ///
     /// * `Ok(GuardedTree)` - A new GuardedTree instance with the write lock and the JSON data.
     /// * `Err(NanoDBError::RwLockWriteError)` - If there was an error acquiring the write lock.
-    pub async fn update(&self) -> Result<WriteGuardedTree<'_>, NanoDBError> {
-        let write_guard = self._write_lock().await?;
+    pub async fn update(&self) -> WriteGuardedTree<'_> {
+        let write_guard = self._write_lock().await;
         let value: Value = write_guard.clone();
-        Ok(WriteGuardedTree::new(write_guard, value))
+        WriteGuardedTree::new(write_guard, value)
     }
 
     /// Inserts a key-value pair into the JSON data of the NanoDB instance.
@@ -157,7 +157,7 @@ impl NanoDB {
     /// * `Err(NanoDBError::RwLockReadError)` - If there was an error acquiring the write lock.
     /// * `Err(serde_json::Error)` - If there was an error serializing `value`.
     pub async fn insert<T: Serialize>(&mut self, key: &str, value: T) -> Result<(), NanoDBError> {
-        let mut data = self._write_lock().await?;
+        let mut data = self._write_lock().await;
         let value = serde_json::to_value(value)?;
         data.as_object_mut().unwrap().insert(key.to_string(), value);
         Ok(())
@@ -181,7 +181,7 @@ impl NanoDB {
     /// See the `examples/single_threaded.rs` file for examples.
     pub async fn merge(&mut self, tree: Tree) -> Result<(), NanoDBError> {
         let path = tree.path();
-        let mut data = self._write_lock().await?;
+        let mut data = self._write_lock().await;
 
         let mut current = &mut *data;
         for p in path {
@@ -243,18 +243,18 @@ impl NanoDB {
     /// * `Err(std::io::Error)` - If there was an error writing the data to the file.
     pub async fn write(&mut self) -> Result<(), NanoDBError> {
         let path = self.path.clone();
-        let data_guard = self._write_lock().await?;
+        let data_guard = self._write_lock().await;
         let contents = serde_json::to_string_pretty(&*data_guard)?;
         tokio::fs::write(path, contents).await?;
         Ok(())
     }
 
-    async fn _write_lock(&self) -> Result<RwLockWriteGuard<'_, Value>, NanoDBError> {
-        Ok(self.data.write().await)
+    async fn _write_lock(&self) -> RwLockWriteGuard<'_, Value> {
+        self.data.write().await
     }
 
-    async fn _read_lock(&self) -> Result<RwLockReadGuard<'_, Value>, NanoDBError> {
-        Ok(self.data.read().await)
+    async fn _read_lock(&self) -> RwLockReadGuard<'_, Value> {
+        self.data.read().await
     }
 }
 
@@ -275,10 +275,7 @@ mod tests {
     #[tokio::test]
     async fn test_new_from() {
         let db = NanoDB::new_from("/path/to/file.json", r#"{"key": "value"}"#).unwrap();
-        assert_eq!(
-            db.data().await.unwrap().get("key").unwrap().inner(),
-            json!("value")
-        );
+        assert_eq!(db.data().await.get("key").unwrap().inner(), json!("value"));
     }
 
     #[tokio::test]
@@ -286,7 +283,7 @@ mod tests {
         let mut db = NanoDB::new_from("/path/to/file.json", r#"{}"#).unwrap();
         db.insert("new_key", "new_value").await.unwrap();
         assert_eq!(
-            db.data().await.unwrap().get("new_key").unwrap().inner(),
+            db.data().await.get("new_key").unwrap().inner(),
             json!("new_value")
         );
     }
@@ -294,7 +291,7 @@ mod tests {
     #[tokio::test]
     async fn test_get() {
         let db = NanoDB::new_from("/path/to/file.json", r#"{"key": "value"}"#).unwrap();
-        let result = db.data().await.unwrap().get("key").unwrap();
+        let result = db.data().await.get("key").unwrap();
         assert_eq!(result.inner(), json!("value"));
     }
 
@@ -305,13 +302,12 @@ mod tests {
             r#"{"key": {"nested_key": "nested_value"}}"#,
         )
         .unwrap();
-        let mut tree = db.data().await.unwrap().get("key").unwrap();
+        let mut tree = db.data().await.get("key").unwrap();
         tree.insert("nested_key_2", "nested_value_2").unwrap();
         db.merge(tree).await.unwrap();
         assert_eq!(
             db.data()
                 .await
-                .unwrap()
                 .get("key")
                 .unwrap()
                 .get("nested_key_2")
