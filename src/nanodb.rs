@@ -176,10 +176,6 @@ impl NanoDB {
     /// * `Err(NanoDBError::RwLockWriteError)` - If there was an error acquiring the write lock.
     /// * `Err(NanoDBError::InvalidJSONPath)` - If the path does not exist in the JSON data or if a path step is not valid for the current value (e.g., using a key on an array or an index on an object).
     /// * `Err(NanoDBError::IndexOutOfBounds)` - If an index path step is out of bounds of the array.
-    ///
-    /// # Examples
-    ///
-    /// See the `examples/single_threaded.rs` file for examples.
     pub async fn merge(&mut self, other: Tree) -> Result<(), NanoDBError> {
         let path = other.path();
         let mut data = self._write_lock().await;

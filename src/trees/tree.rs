@@ -192,6 +192,51 @@ impl Tree {
         Ok(self.clone())
     }
 
+    //// Merges a Tree into the JSON data of the NanoDB instance at a given path.
+    ///
+    /// # Arguments
+    ///
+    /// * `tree` - The Tree to merge into the JSON data.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - If the operation was successful.
+    /// * `Err(NanoDBError::RwLockWriteError)` - If there was an error acquiring the write lock.
+    /// * `Err(NanoDBError::InvalidJSONPath)` - If the path does not exist in the JSON data or if a path step is not valid for the current value (e.g., using a key on an array or an index on an object).
+    /// * `Err(NanoDBError::IndexOutOfBounds)` - If an index path step is out of bounds of the array.
+    pub fn merge_from(&mut self, other: Tree) -> Result<&mut Self, NanoDBError> {
+        let path = other.path();
+        let mut current = &mut self.inner;
+
+        for p in path {
+            match p {
+                PathStep::Key(key) => {
+                    if current.is_object() {
+                        let obj = current.as_object_mut().unwrap();
+                        match obj.get_mut(&key) {
+                            Some(value) => current = value,
+                            None => return Err(NanoDBError::InvalidJSONPath),
+                        }
+                    } else {
+                        return Err(NanoDBError::InvalidJSONPath);
+                    }
+                }
+                PathStep::Index(idx) => {
+                    if current.is_array() {
+                        let arr = current.as_array_mut().unwrap();
+                        current = arr.get_mut(idx).ok_or(NanoDBError::IndexOutOfBounds(idx))?;
+                    } else {
+                        return Err(NanoDBError::InvalidJSONPath);
+                    }
+                }
+            }
+        }
+
+        *current = other.inner();
+
+        Ok(self)
+    }
+
     /// Pushes a value to the tree if it's an array.
     ///
     /// # Arguments

@@ -70,7 +70,8 @@ impl<'a> WriteGuardedTree<'a> {
         Ok(self)
     }
 
-    /// Inserts a key-value pair into the inner JSON object of the TreeWriteGuarded instance.
+    /// Inserts a key-value pair into the inner JSON object of the TreeWriteGuarded instance,
+    /// at the current path of the tree.
     ///
     /// # Arguments
     ///
@@ -84,7 +85,7 @@ impl<'a> WriteGuardedTree<'a> {
     /// * `Err(NanoDBError::IndexOutOfBounds)` - If an array index in the path is out of bounds.
     pub fn insert<T: Serialize>(&mut self, key: &str, value: T) -> Result<&mut Self, NanoDBError> {
         self.tree = self.tree.clone().insert(key, value)?;
-        self.merge_from(self.tree.clone())?;
+        self.merge()?;
         Ok(self)
     }
 
@@ -103,9 +104,7 @@ impl<'a> WriteGuardedTree<'a> {
         F: FnMut(&mut serde_json::Value),
     {
         self.tree = self.tree.clone().for_each(f)?;
-
-        self.merge_from(self.tree.clone())?;
-
+        self.merge()?;
         Ok(self)
     }
 
@@ -123,40 +122,21 @@ impl<'a> WriteGuardedTree<'a> {
         serde_json::from_value(self.tree.inner())
     }
 
-    /// Merges the JSON data from another Tree instance into this guarded instance.
+    /// Merges the inner Tree (self.tree) instance into the the write lock guard.
     ///
-    /// # Arguments
+    /// # Returns
     ///
-    /// * `other` - The other Tree instance to merge from.
-    pub fn merge_from(&mut self, other: Tree) -> Result<&mut Self, NanoDBError> {
-        let path = self.tree.path();
-        let mut current = &mut *self._guard;
+    /// * `Ok(&mut Self)` - The TreeWriteGuarded instance itself after the merge. This allows for method chaining.
+    /// * `Err(NanoDBError)` - If there was an error during the merge.
+    pub fn merge(&mut self) -> Result<&mut Self, NanoDBError> {
+        let current = &mut *self._guard;
 
-        for p in path {
-            match p {
-                PathStep::Key(key) => {
-                    if current.is_object() {
-                        let obj = current.as_object_mut().unwrap();
-                        match obj.get_mut(&key) {
-                            Some(value) => current = value,
-                            None => return Err(NanoDBError::InvalidJSONPath),
-                        }
-                    } else {
-                        return Err(NanoDBError::InvalidJSONPath);
-                    }
-                }
-                PathStep::Index(idx) => {
-                    if current.is_array() {
-                        let arr = current.as_array_mut().unwrap();
-                        current = arr.get_mut(idx).ok_or(NanoDBError::IndexOutOfBounds(idx))?;
-                    } else {
-                        return Err(NanoDBError::InvalidJSONPath);
-                    }
-                }
-            }
-        }
+        // Wrap it in a Tree so we can use the standard tree method to merge
+        let mut current_wrapped = Tree::new(current.clone(), vec![]);
+        current_wrapped.merge_from(self.tree.clone())?;
 
-        *current = other.inner();
+        // Unwrap the value and assign it to the guard
+        *current = current_wrapped.inner();
 
         Ok(self)
     }
