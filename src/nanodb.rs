@@ -157,9 +157,10 @@ impl NanoDB {
     /// * `Err(NanoDBError::RwLockReadError)` - If there was an error acquiring the write lock.
     /// * `Err(serde_json::Error)` - If there was an error serializing `value`.
     pub async fn insert<T: Serialize>(&mut self, key: &str, value: T) -> Result<(), NanoDBError> {
-        let mut data = self._write_lock().await;
-        let value = serde_json::to_value(value)?;
-        data.as_object_mut().unwrap().insert(key.to_string(), value);
+        let tree_guard = self._write_lock().await;
+        let tree_value = tree_guard.clone();
+        let mut tree = WriteGuardedTree::new(tree_guard, tree_value);
+        tree.insert(key, value)?;
         Ok(())
     }
 
@@ -179,8 +180,8 @@ impl NanoDB {
     /// # Examples
     ///
     /// See the `examples/single_threaded.rs` file for examples.
-    pub async fn merge(&mut self, tree: Tree) -> Result<(), NanoDBError> {
-        let path = tree.path();
+    pub async fn merge(&mut self, other: Tree) -> Result<(), NanoDBError> {
+        let path = other.path();
         let mut data = self._write_lock().await;
 
         let mut current = &mut *data;
@@ -210,7 +211,7 @@ impl NanoDB {
             }
         }
 
-        *current = tree.inner();
+        *current = other.inner();
         Ok(())
     }
 

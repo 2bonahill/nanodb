@@ -192,6 +192,44 @@ impl Tree {
         Ok(self.clone())
     }
 
+    /// Merges the JSON data from another Tree instance into this guarded instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - The other Tree instance to merge from.
+    fn merge(destination: &mut Tree, source: Tree) -> Result<&mut Self, NanoDBError> {
+        let path = destination.path();
+        let mut current = &mut destination.inner;
+
+        for p in path {
+            match p {
+                PathStep::Key(key) => {
+                    if current.is_object() {
+                        let obj = current.as_object_mut().unwrap();
+                        match obj.get_mut(&key) {
+                            Some(value) => current = value,
+                            None => return Err(NanoDBError::InvalidJSONPath),
+                        }
+                    } else {
+                        return Err(NanoDBError::InvalidJSONPath);
+                    }
+                }
+                PathStep::Index(idx) => {
+                    if current.is_array() {
+                        let arr = current.as_array_mut().unwrap();
+                        current = arr.get_mut(idx).ok_or(NanoDBError::IndexOutOfBounds(idx))?;
+                    } else {
+                        return Err(NanoDBError::InvalidJSONPath);
+                    }
+                }
+            }
+        }
+
+        *current = source.inner();
+
+        Ok(destination)
+    }
+
     /// Pushes a value to the tree if it's an array.
     ///
     /// # Arguments
@@ -247,7 +285,7 @@ impl Tree {
         match &self.inner {
             serde_json::Value::Array(arr) => Ok(arr.len()),
             serde_json::Value::Object(obj) => Ok(obj.len()),
-            _ => Err(NanoDBError::NotAnArray(self.path_string())),
+            _ => Err(NanoDBError::LenNotDefined(self.path_string())),
         }
     }
 

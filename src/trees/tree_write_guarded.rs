@@ -84,9 +84,7 @@ impl<'a> WriteGuardedTree<'a> {
     /// * `Err(NanoDBError::IndexOutOfBounds)` - If an array index in the path is out of bounds.
     pub fn insert<T: Serialize>(&mut self, key: &str, value: T) -> Result<&mut Self, NanoDBError> {
         self.tree = self.tree.clone().insert(key, value)?;
-
         self.merge_from(self.tree.clone())?;
-
         Ok(self)
     }
 
@@ -130,7 +128,7 @@ impl<'a> WriteGuardedTree<'a> {
     /// # Arguments
     ///
     /// * `other` - The other Tree instance to merge from.
-    fn merge_from(&mut self, other: Tree) -> Result<&mut Self, NanoDBError> {
+    pub fn merge_from(&mut self, other: Tree) -> Result<&mut Self, NanoDBError> {
         let path = self.tree.path();
         let mut current = &mut *self._guard;
 

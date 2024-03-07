@@ -6,11 +6,9 @@ extern crate nanodb;
 async fn async_tests() -> Result<(), NanoDBError> {
     let mut db = NanoDB::open("examples/data/data.json")?;
     db.insert("counter", 0).await?;
-    // dbg!(&db);
 
     let mut handles = Vec::new();
-    for i in 0..10 {
-        dbg!(i);
+    for _ in 0..10 {
         let db_clone = db.clone();
         let handle = tokio::spawn(async move {
             let mut writer = db_clone.update().await;

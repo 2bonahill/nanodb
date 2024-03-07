@@ -20,7 +20,6 @@ fn _new_path_is_valid(
             }
             PathStep::Index(i) => {
                 if let Some(new_data) = current.get(*i) {
-                    dbg!(new_data);
                     current = new_data;
                 } else {
                     return Err(NanoDBError::InvalidJSONPath);

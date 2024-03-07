@@ -18,6 +18,8 @@ async fn sync_tests() -> Result<(), NanoDBError> {
 
     // Get
     let age: i64 = db.data().await.get("age")?.into()?;
+    assert_eq!(age, 60);
+
     let city: String = db.data().await.get("address")?.get("city")?.into()?;
     let fruits_value_tree: String = db.data().await.get("fruits")?.at(1)?.into()?;
     let address: Map<String, Value> = db.data().await.get("address")?.into()?;
