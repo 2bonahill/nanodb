@@ -3,8 +3,8 @@
 use nanodb::{error::NanoDBError, nanodb::NanoDB};
 use serde_json::{Map, Value};
 
-#[tokio::main]
-async fn main() -> Result<(), NanoDBError> {
+#[tokio::test]
+async fn sync_tests() -> Result<(), NanoDBError> {
     let mut db = NanoDB::open("examples/data/data.json")?;
 
     // Insert
