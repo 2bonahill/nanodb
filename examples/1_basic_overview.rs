@@ -10,10 +10,8 @@ async fn main() -> Result<(), NanoDBError> {
     // Insert
     db.insert("age", 60).await?;
     db.insert("email", "johndoe@gmail.com").await?;
-    db.insert("fruits", vec!["apple", "banana", "orange"])
-        .await?;
-    db.insert("hobbies", vec!["ski", "tennis", "fitness", "climbing"])
-        .await?;
+    db.insert("fruits", vec!["apple", "banana"]).await?;
+    db.insert("hobbies", vec!["ski", "tennis"]).await?;
     db.write().await?;
 
     // Get
@@ -37,9 +35,9 @@ async fn main() -> Result<(), NanoDBError> {
 
     // Merge
     let fruits = db.data().await.get("fruits")?.push("coconut")?;
-    db.merge(fruits).await?;
+    db.merge_from(fruits).await?;
     let address = db.data().await.get("address")?.insert("zip", "12345")?;
-    db.merge(address).await?;
+    db.merge_from(address).await?;
     db.write().await?;
 
     // Atomic reader

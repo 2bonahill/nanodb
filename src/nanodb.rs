@@ -6,11 +6,7 @@ use tokio::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::{
     error::NanoDBError,
-    trees::{
-        tree::{PathStep, Tree},
-        tree_read_guarded::ReadGuardedTree,
-        tree_write_guarded::WriteGuardedTree,
-    },
+    trees::{tree::Tree, tree_read_guarded::ReadGuardedTree, tree_write_guarded::WriteGuardedTree},
 };
 
 /// A struct representing a NanoDB instance.
@@ -164,7 +160,8 @@ impl NanoDB {
         Ok(())
     }
 
-    /// Merges a Tree into the JSON data of the NanoDB instance at a given path.
+    /// Merges a Tree (other) into the JSON data of the NanoDB instance
+    /// It does so by respecting the path of the other Tree instance.
     ///
     /// # Arguments
     ///
@@ -176,38 +173,16 @@ impl NanoDB {
     /// * `Err(NanoDBError::RwLockWriteError)` - If there was an error acquiring the write lock.
     /// * `Err(NanoDBError::InvalidJSONPath)` - If the path does not exist in the JSON data or if a path step is not valid for the current value (e.g., using a key on an array or an index on an object).
     /// * `Err(NanoDBError::IndexOutOfBounds)` - If an index path step is out of bounds of the array.
-    pub async fn merge(&mut self, other: Tree) -> Result<(), NanoDBError> {
-        let path = other.path();
-        let mut data = self._write_lock().await;
+    pub async fn merge_from(&mut self, other: Tree) -> Result<(), NanoDBError> {
+        let mut current = self._write_lock().await;
 
-        let mut current = &mut *data;
-        for p in path {
-            match p {
-                PathStep::Key(key) => {
-                    if current.is_object() {
-                        let obj = current.as_object_mut().unwrap();
-                        // Check if the key exists, and if so, get a mutable reference to it.
-                        // Otherwise, return an error.
-                        match obj.get_mut(&key) {
-                            Some(value) => current = value,
-                            None => return Err(NanoDBError::InvalidJSONPath),
-                        }
-                    } else {
-                        return Err(NanoDBError::InvalidJSONPath);
-                    }
-                }
-                PathStep::Index(idx) => {
-                    if current.is_array() {
-                        let arr = current.as_array_mut().unwrap();
-                        current = arr.get_mut(idx).ok_or(NanoDBError::IndexOutOfBounds(idx))?;
-                    } else {
-                        return Err(NanoDBError::InvalidJSONPath);
-                    }
-                }
-            }
-        }
+        // wrap data into a tree to use the merge from method
+        let mut current_tree = Tree::new(current.clone(), vec![]);
+        current_tree.merge_from(other)?;
 
-        *current = other.inner();
+        // update the current write guarded value
+        *current = current_tree.inner();
+
         Ok(())
     }
 
@@ -225,7 +200,7 @@ impl NanoDB {
     /// * `Err(NanoDBError::IndexOutOfBounds)` - If an index path step is out of bounds of the array.
     /// * `Err(NanoDBError::FileWriteError)` - If there was an error writing the data to the file.
     pub async fn merge_and_write(&mut self, tree: Tree) -> Result<(), NanoDBError> {
-        self.merge(tree).await?;
+        self.merge_from(tree).await?;
         self.write().await?;
         Ok(())
     }
@@ -301,7 +276,7 @@ mod tests {
         .unwrap();
         let mut tree = db.data().await.get("key").unwrap();
         tree.insert("nested_key_2", "nested_value_2").unwrap();
-        db.merge(tree).await.unwrap();
+        db.merge_from(tree).await.unwrap();
         assert_eq!(
             db.data()
                 .await

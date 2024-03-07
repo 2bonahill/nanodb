@@ -192,7 +192,8 @@ impl Tree {
         Ok(self.clone())
     }
 
-    //// Merges a Tree into the JSON data of the NanoDB instance at a given path.
+    /// Merges a Tree (other) into the JSON data of the NanoDB instance
+    /// It does so by respecting the path of the other Tree instance.
     ///
     /// # Arguments
     ///

@@ -39,9 +39,9 @@ async fn sync_tests() -> Result<(), NanoDBError> {
 
     // Merge
     let fruits = db.data().await.get("fruits")?.push("coconut")?;
-    db.merge(fruits).await?;
+    db.merge_from(fruits).await?;
     let address = db.data().await.get("address")?.insert("zip", "12345")?;
-    db.merge(address).await?;
+    db.merge_from(address).await?;
     db.write().await?;
 
     // Atomic reader
