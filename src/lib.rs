@@ -13,7 +13,7 @@
 //! To use NanoDB, add the following to your Cargo.toml file:
 //! ```toml
 //! [dependencies]
-//! nanodb = "0.1.0"
+//! nanodb = "0.1.1"
 //! ```
 
 //! ## Trees
@@ -23,7 +23,7 @@
 //! * **WriteGuardedTree**: A struct representing a write-guarded tree. This struct contains a write lock guard and a tree. The write lock guard ensures that the tree cannot be modified by other threads while it is being written to.
 
 //! ## Examples
-//! ```rust,no_run
+//! ```rust,text
 //! use nanodb::{error::NanoDBError, nanodb::NanoDB, trees::tree::Tree};
 //! use serde_json::{Map, Value};
 //!
