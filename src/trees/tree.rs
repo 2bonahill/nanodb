@@ -79,7 +79,7 @@ impl Tree {
                     path: new_path,
                 })
             }
-            _ => Err(NanoDBError::NotAnObject),
+            _ => Err(NanoDBError::NotAnObject(key.to_string())),
         }
     }
 
@@ -315,7 +315,7 @@ impl Tree {
 #[cfg(test)]
 mod tests {
 
-    use crate::trees::tree::Tree;
+    use crate::{error::NanoDBError, trees::tree::Tree};
     use serde_json::{json, Value};
 
     fn value() -> Value {
@@ -371,6 +371,12 @@ mod tests {
             .as_array()
             .unwrap()
             .contains(&serde_json::json!(10)));
+
+        // push into object -> must fail
+        let mut tree = Tree::new(value(), vec![]).get("key1").unwrap();
+        let x = tree.push(42);
+        assert!(x.is_err());
+        assert!(matches!(x.unwrap_err(), NanoDBError::NotAnArray(_)));
     }
     #[tokio::test]
     async fn test_tree_for_each() {

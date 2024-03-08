@@ -17,8 +17,8 @@ pub enum NanoDBError {
     NotAnArray(String),
     #[error("The value at '{0}' does not have a length property")]
     LenNotDefined(String),
-    #[error("Not an object")]
-    NotAnObject,
+    #[error("The value at '{0}' is not an object")]
+    NotAnObject(String),
     #[error("Key '{0}' not found")]
     KeyNotFound(String),
     #[error("Index {0} is out of bounds")]
