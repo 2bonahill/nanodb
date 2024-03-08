@@ -4,7 +4,6 @@ NanoDB provides the following features:
 * **Simple API**: NanoDB provides a simple and easy-to-use API for reading and writing JSON data.
 * **Atomic Reads and Writes**: NanoDB provides atomic reads and writes, ensuring that the data is always consistent.
 * **Tree Methods**: NanoDB provides tree methods for working with JSON data, such as getting, setting, and merging data.
-* **Error Handling**: NanoDB provides comprehensive error handling, ensuring that errors are handled gracefully.
 * **Asynchronous I/O**: NanoDB uses asynchronous I/O to ensure that it is fast and efficient.
 * **Lightweight**: NanoDB is lightweight and has minimal dependencies, making it easy to use in small to medium-sized projects.
 * **JSON Serialization and Deserialization**: NanoDB uses the serde_json crate for JSON serialization and deserialization, ensuring that it is fast and efficient.
@@ -13,7 +12,7 @@ NanoDB provides the following features:
 To use NanoDB, add the following to your Cargo.toml file:
 ```toml
 [dependencies]
-nanodb = "0.1.1"
+nanodb = "0.2.1"
 ```
 
 ## Trees
