@@ -124,8 +124,8 @@ impl NanoDB {
     /// * `Err(NanoDBError::RwLockReadError)` - If there was an error acquiring the read lock.
     pub async fn read(&self) -> ReadGuardedTree<'_> {
         let read_guard = self._read_lock().await;
-        let value: Value = read_guard.clone();
-        ReadGuardedTree::new(read_guard, value)
+        let read_guard_value: Value = read_guard.clone();
+        ReadGuardedTree::new(read_guard, read_guard_value)
     }
 
     /// Asynchronously returns a write-guarded tree.
@@ -136,8 +136,8 @@ impl NanoDB {
     /// * `Err(NanoDBError::RwLockWriteError)` - If there was an error acquiring the write lock.
     pub async fn update(&self) -> WriteGuardedTree<'_> {
         let write_guard = self._write_lock().await;
-        let value: Value = write_guard.clone();
-        WriteGuardedTree::new(write_guard, value)
+        let write_guard_value: Value = write_guard.clone();
+        WriteGuardedTree::new(write_guard, write_guard_value)
     }
 
     /// Inserts a key-value pair into the JSON data of the NanoDB instance.
@@ -153,9 +153,9 @@ impl NanoDB {
     /// * `Err(NanoDBError::RwLockReadError)` - If there was an error acquiring the write lock.
     /// * `Err(serde_json::Error)` - If there was an error serializing `value`.
     pub async fn insert<T: Serialize>(&mut self, key: &str, value: T) -> Result<(), NanoDBError> {
-        let tree_guard = self._write_lock().await;
-        let tree_value = tree_guard.clone();
-        let mut tree = WriteGuardedTree::new(tree_guard, tree_value);
+        let write_guard = self._write_lock().await;
+        let write_guard_value: Value = write_guard.clone();
+        let mut tree = WriteGuardedTree::new(write_guard, write_guard_value);
         tree.insert(key, value)?;
         Ok(())
     }
