@@ -16,10 +16,12 @@ nanodb = "0.2.1"
 ```
 
 ## Trees
-NanoDB know three different types of trees:
+NanoDB knows three different types of trees:
 * **Tree**: A struct representing a read-only tree. This struct contains a clone of the DB's JSON value and a path. The JSON value is the actual data of the tree, and the path is the path to the current location in the tree.
-* **ReadGuardedTree**: A struct representing a read-guarded tree. This struct contains a read lock guard and a tree. The read lock guard ensures that the tree cannot be modified by other threads while it is being read.
+* **ReadGuardedTree**: A struct representing a read-guarded tree. This struct contains a read lock guard and a tree. The read lock guard ensures that the tree cannot be modified by other threads while it is being read. 
 * **WriteGuardedTree**: A struct representing a write-guarded tree. This struct contains a write lock guard and a tree. The write lock guard ensures that the tree cannot be modified by other threads while it is being written to.
+
+This construct allows **any number of read guarded trees** or **at most one write guarded tree** at any point in time.
 
 ## Examples
 ```rust
@@ -37,14 +39,12 @@ let city: String = db.data().await.get("address")?.get("city")?.into()?;
 let fruit: String = db.data().await.get("fruits")?.at(1)?.into()?;
 let address: Map<String, Value> = db.data().await.get("address")?.into()?;
 
-// Deletion
-db.update().await.remove("age")?;
-
 // Simple inserts
 db.insert("age", 42).await?;
 db.insert("fruits", vec!["apple", "banana"]).await?;
 
-// Atomic updates and advanced data manipulation
+// Atomic CRUD operations and advanced data manipulation
+db.update().await.remove("age")?;
 db.update().await.get("address")?.insert("key", "value")?;
 db.update().await.get("hobbies")?.push("reading")?;
 db.update().await.get("numbers")?.for_each(|v| {
