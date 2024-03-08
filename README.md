@@ -8,16 +8,11 @@ NanoDB provides the following features:
 * **Lightweight**: NanoDB is lightweight and has minimal dependencies, making it easy to use in small to medium-sized projects.
 * **JSON Serialization and Deserialization**: NanoDB uses the serde_json crate for JSON serialization and deserialization, ensuring that it is fast and efficient.
 * **Thread Safety**: NanoDB is thread-safe, ensuring that it can be used in multi-threaded applications.
-## Usage
-To use NanoDB, add the following to your Cargo.toml file:
-```toml
-[dependencies]
-nanodb = "0.2.1"
-```
+
 
 ## Trees
 NanoDB knows three different types of trees:
-* **Tree**: A struct representing a read-only tree. This struct contains a clone of the DB's JSON value and a path. The JSON value is the actual data of the tree, and the path is the path to the current location in the tree.
+* **Tree**: A struct representing a read-only tree, containing a clone of the DB's JSON value and a path. The JSON value is a clone of the actual data of the tree, and the path is the path to the current location in the tree.
 * **ReadGuardedTree**: A struct representing a read-guarded tree. This struct contains a read lock guard and a tree. The read lock guard ensures that the tree cannot be modified by other threads while it is being read. 
 * **WriteGuardedTree**: A struct representing a write-guarded tree. This struct contains a write lock guard and a tree. The write lock guard ensures that the tree cannot be modified by other threads while it is being written to.
 
