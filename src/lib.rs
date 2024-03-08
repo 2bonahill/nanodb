@@ -39,6 +39,9 @@
 //!     db.update().await.get("numbers")?.for_each(|v| {
 //!         *v = Value::from(v.as_i64().unwrap() + 2i64);
 //!     })?;
+//!		db.update().await.remove("age")?;
+//!		db.insert("age", 42).await?;
+//!
 //!     db.write().await?;
 //!
 //!     // Simple reading (working with a cloned sub-tree)

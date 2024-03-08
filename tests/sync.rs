@@ -76,5 +76,10 @@ async fn sync_tests() -> Result<(), NanoDBError> {
     );
     db.write().await?;
 
+    // remove
+    db.insert("age", 60).await?;
+    db.update().await.remove("age")?;
+    assert!(db.data().await.get("age").is_err());
+
     Ok(())
 }

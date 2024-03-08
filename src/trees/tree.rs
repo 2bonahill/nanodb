@@ -192,6 +192,21 @@ impl Tree {
         Ok(self.clone())
     }
 
+    /// Removes a key-value pair from the inner JSON object of the Tree instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - The key to remove the value for.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Tree)` - A clone of the Tree instance after the removal.
+    /// * `Err(NanoDBError)` - If the inner JSON value is not an object or the key does not exist.
+    pub fn remove(&mut self, key: &str) -> Result<Tree, NanoDBError> {
+        self.inner.as_object_mut().unwrap().remove(key);
+        Ok(self.clone())
+    }
+
     /// Merges a Tree (other) into the JSON data of the NanoDB instance
     /// It does so by respecting the path of the other Tree instance.
     ///
@@ -360,6 +375,15 @@ mod tests {
         tree.insert("new_key", "new_value").unwrap();
         let tree = tree.get("new_key").unwrap();
         assert_eq!(tree.inner(), serde_json::json!("new_value"));
+    }
+
+    #[tokio::test]
+    async fn test_tree_remove() {
+        let mut tree = Tree::new(value(), vec![]);
+        tree.remove("key1").unwrap();
+        let x = tree.get("key1");
+        assert!(x.is_err());
+        assert!(matches!(x.unwrap_err(), NanoDBError::KeyNotFound(_)));
     }
 
     #[tokio::test]

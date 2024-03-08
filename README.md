@@ -38,6 +38,9 @@ let city: String = db.data().await.get("address")?.get("city")?.into()?;
 let fruit: String = db.data().await.get("fruits")?.at(1)?.into()?;
 let address: Map<String, Value> = db.data().await.get("address")?.into()?;
 
+// Deletion
+db.update().await.remove("age")?;
+
 // Simple inserts
 db.insert("age", 42).await?;
 db.insert("fruits", vec!["apple", "banana"]).await?;

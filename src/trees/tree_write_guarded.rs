@@ -89,6 +89,22 @@ impl<'a> WriteGuardedTree<'a> {
         Ok(self)
     }
 
+    /// Removes a key-value pair from the inner JSON object of the TreeWriteGuarded instance and then merges the result into the current JSON value of the write lock guard.
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - The key to remove the value for.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(&mut Self)` - The TreeWriteGuarded instance itself after the removal and merge. This allows for method chaining.
+    /// * `Err(NanoDBError)` - If there was an error during the removal or the merge.
+    pub fn remove(&mut self, key: &str) -> Result<&mut Self, NanoDBError> {
+        self.tree = self.tree.clone().remove(key)?;
+        self.merge()?;
+        Ok(self)
+    }
+
     /// Pushes a value to the tree if it's an array.
     ///
     /// # Arguments
