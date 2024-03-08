@@ -4,7 +4,7 @@ use tokio::sync::RwLockWriteGuard;
 
 use crate::error::NanoDBError;
 
-use super::tree::{PathStep, Tree};
+use super::tree::Tree;
 
 /// A struct representing a write-guarded tree.
 ///
@@ -89,6 +89,21 @@ impl<'a> WriteGuardedTree<'a> {
         Ok(self)
     }
 
+    /// Pushes a value to the tree if it's an array.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - A value of type T that implements the Serialize trait. This value will be serialized to JSON and pushed to the array.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Tree)` - A new Tree object that represents the current state of the tree after the value has been pushed.
+    /// * `Err(NanoDBError::NotAnArray)` - If the inner value of the tree is not an array.
+    pub fn push<T: Serialize>(&mut self, value: T) -> Result<&mut Self, NanoDBError> {
+        self.tree = self.tree.clone().push(value)?;
+        self.merge()?;
+        Ok(self)
+    }
     /// Applies a function to each element of the inner array of the tree.
     ///
     /// # Arguments

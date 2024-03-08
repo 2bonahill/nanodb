@@ -160,8 +160,9 @@ impl NanoDB {
         Ok(())
     }
 
-    /// Merges a Tree (other) into the JSON data of the NanoDB instance
+    /// Inserts a Tree (other) into the JSON data of the NanoDB instance.
     /// It does so by respecting the path of the other Tree instance.
+    /// Current value at the path is replaced by the value of the other Tree instance.
     ///
     /// # Arguments
     ///
@@ -173,35 +174,15 @@ impl NanoDB {
     /// * `Err(NanoDBError::RwLockWriteError)` - If there was an error acquiring the write lock.
     /// * `Err(NanoDBError::InvalidJSONPath)` - If the path does not exist in the JSON data or if a path step is not valid for the current value (e.g., using a key on an array or an index on an object).
     /// * `Err(NanoDBError::IndexOutOfBounds)` - If an index path step is out of bounds of the array.
-    pub async fn merge_from(&mut self, other: Tree) -> Result<(), NanoDBError> {
-        let mut current = self._write_lock().await;
-
+    pub async fn insert_tree(&mut self, other: Tree) -> Result<(), NanoDBError> {
+        let mut write_guard = self._write_lock().await;
         // wrap data into a tree to use the merge from method
-        let mut current_tree = Tree::new(current.clone(), vec![]);
+        let mut current_tree = Tree::new(write_guard.clone(), vec![]);
         current_tree.merge_from(other)?;
 
         // update the current write guarded value
-        *current = current_tree.inner();
+        *write_guard = current_tree.inner();
 
-        Ok(())
-    }
-
-    /// Merges a Tree into the JSON data of the NanoDB instance and writes the data to the file.
-    ///
-    /// # Arguments
-    ///
-    /// * `tree` - The Tree to merge into the JSON data.
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` - If the operation was successful.
-    /// * `Err(NanoDBError::RwLockWriteError)` - If there was an error acquiring the write lock.
-    /// * `Err(NanoDBError::InvalidJSONPath)` - If the path does not exist in the JSON data or if a path step is not valid for the current value (e.g., using a key on an array or an index on an object).
-    /// * `Err(NanoDBError::IndexOutOfBounds)` - If an index path step is out of bounds of the array.
-    /// * `Err(NanoDBError::FileWriteError)` - If there was an error writing the data to the file.
-    pub async fn merge_and_write(&mut self, tree: Tree) -> Result<(), NanoDBError> {
-        self.merge_from(tree).await?;
-        self.write().await?;
         Ok(())
     }
 
@@ -276,7 +257,7 @@ mod tests {
         .unwrap();
         let mut tree = db.data().await.get("key").unwrap();
         tree.insert("nested_key_2", "nested_value_2").unwrap();
-        db.merge_from(tree).await.unwrap();
+        db.insert_tree(tree).await.unwrap();
         assert_eq!(
             db.data()
                 .await

@@ -9,11 +9,22 @@ async fn sync_tests() -> Result<(), NanoDBError> {
 
     // Insert
     db.insert("age", 60).await?;
+    assert_eq!(db.data().await.get("age")?.into::<i64>()?, 60);
     db.insert("email", "johndoe@gmail.com").await?;
-    db.insert("fruits", vec!["apple", "banana", "orange"])
-        .await?;
-    db.insert("hobbies", vec!["ski", "tennis", "fitness", "climbing"])
-        .await?;
+    assert_eq!(
+        db.data().await.get("email")?.into::<String>()?,
+        "johndoe@gmail.com"
+    );
+    db.insert("fruits", vec!["apple", "banana"]).await?;
+    assert_eq!(
+        db.data().await.get("fruits")?.into::<Vec<String>>()?,
+        vec!["apple", "banana"]
+    );
+    db.insert("hobbies", vec!["ski", "tennis"]).await?;
+    assert_eq!(
+        db.data().await.get("hobbies")?.into::<Vec<String>>()?,
+        vec!["ski", "tennis"]
+    );
     db.write().await?;
 
     // Get
@@ -35,13 +46,13 @@ async fn sync_tests() -> Result<(), NanoDBError> {
             *v = Value::from(v.as_i64().unwrap() + 2i64);
         })
         .unwrap();
-    db.merge_and_write(numbers).await?;
+    db.insert_tree(numbers).await?;
 
     // Merge
     let fruits = db.data().await.get("fruits")?.push("coconut")?;
-    db.merge_from(fruits).await?;
+    db.insert_tree(fruits).await?;
     let address = db.data().await.get("address")?.insert("zip", "12345")?;
-    db.merge_from(address).await?;
+    db.insert_tree(address).await?;
     db.write().await?;
 
     // Atomic reader
@@ -51,15 +62,18 @@ async fn sync_tests() -> Result<(), NanoDBError> {
 
     // Atomic writer
     let mut db = NanoDB::open("examples/data/data.json")?;
-    db.update().await.insert("writer", "hi from writer")?;
-    db.update()
-        .await
-        .get("address")?
-        .insert("address-hi", "for address: hi from writer")?;
+    db.update().await.insert("key", "value")?;
+    assert_eq!(db.data().await.get("key")?.into::<String>()?, "value");
+    db.update().await.get("address")?.insert("key", "value")?;
     db.write().await?;
     db.update().await.get("numbers")?.for_each(|v| {
         *v = Value::from(v.as_i64().unwrap() + 2i64);
     })?;
+    db.update().await.get("hobbies")?.push("reading")?;
+    assert_eq!(
+        db.data().await.get("hobbies")?.into::<Vec<String>>()?,
+        vec!["ski", "tennis", "reading"]
+    );
     db.write().await?;
 
     Ok(())
