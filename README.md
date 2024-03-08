@@ -32,9 +32,17 @@ use serde_json::{Map, Value};
 // Open the DB
 let mut db = NanoDB::open("examples/data/data.json")?;
 
-// Atomic Updates
+// Simple reading (working with a cloned sub-tree)
+let age: i64 = db.data().await.get("age")?.into()?;
+let city: String = db.data().await.get("address")?.get("city")?.into()?;
+let fruit: String = db.data().await.get("fruits")?.at(1)?.into()?;
+let address: Map<String, Value> = db.data().await.get("address")?.into()?;
+
+// Simple inserts
 db.insert("age", 42).await?;
 db.insert("fruits", vec!["apple", "banana"]).await?;
+
+// Atomic updates and advanced data manipulation
 db.update().await.get("address")?.insert("key", "value")?;
 db.update().await.get("hobbies")?.push("reading")?;
 db.update().await.get("numbers")?.for_each(|v| {
@@ -43,12 +51,6 @@ db.update().await.get("numbers")?.for_each(|v| {
 
 // Write changes to the disk
 db.write().await?;
-
-// Simple reading (working with a cloned sub-tree)
-let age: i64 = db.data().await.get("age")?.into()?;
-let city: String = db.data().await.get("address")?.get("city")?.into()?;
-let fruit: String = db.data().await.get("fruits")?.at(1)?.into()?;
-let address: Map<String, Value> = db.data().await.get("address")?.into()?;
 
 // Atomic reader
 let fruits: Vec<String> = db.read().await.get("fruits")?.into()?;
