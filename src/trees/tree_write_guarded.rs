@@ -177,3 +177,71 @@ impl<'a> WriteGuardedTree<'a> {
         &self.tree
     }
 }
+
+#[cfg(test)]
+mod tests {
+
+    use std::path::Path;
+
+    use crate::{
+        error::NanoDBError,
+        trees::tree::{PathStep, Tree},
+    };
+    use serde_json::{json, Value};
+
+    use super::WriteGuardedTree;
+
+    fn value() -> Value {
+        serde_json::from_str(
+            r#"{
+			"key1": "value1",
+			"key2": {
+				"inner_key1": "inner_value1",
+				"inner_key2": "inner_value2"
+			},
+			"key3": [1, 2, 3]
+		}"#,
+        )
+        .unwrap()
+    }
+
+    #[tokio::test]
+    async fn test_write_guarded_new() {
+        let value = value();
+        let rwlock = tokio::sync::RwLock::new(value.clone());
+        let guard = rwlock.write().await;
+        let tree = Tree::new(value.clone(), vec![]);
+        let write_guarded = super::WriteGuardedTree::new(guard, value.clone());
+        assert_eq!(write_guarded.tree.inner(), tree.inner());
+    }
+
+    #[tokio::test]
+    async fn test_write_guarded_get() {
+        let value = value();
+        let rwlock = tokio::sync::RwLock::new(value.clone());
+        let mut write_guarded = super::WriteGuardedTree::new(rwlock.write().await, value.clone());
+        write_guarded.get("key2").unwrap();
+        let tree = Tree::new(
+            json!({
+                "inner_key1": "inner_value1",
+                "inner_key2": "inner_value2"
+            }),
+            vec![PathStep::Key("key2".to_string())],
+        );
+        assert_eq!(write_guarded.tree.inner(), tree.inner());
+    }
+
+    #[tokio::test]
+    async fn test_write_guarded_at() {
+        let value = value();
+        let rwlock = tokio::sync::RwLock::new(value.clone());
+        let mut write_guarded = super::WriteGuardedTree::new(rwlock.write().await, value.clone());
+        write_guarded.get("key3").unwrap();
+        write_guarded.at(1).unwrap();
+        let tree = Tree::new(
+            json!(2),
+            vec![PathStep::Key("key3".to_string()), PathStep::Index(1)],
+        );
+        assert_eq!(write_guarded.tree.inner(), tree.inner());
+    }
+}

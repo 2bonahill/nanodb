@@ -160,6 +160,24 @@ impl NanoDB {
         Ok(())
     }
 
+    /// Removes a key-value pair from the JSON object stored in the NanoDB instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - The key to remove the value for.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - If the removal was successful.
+    /// * `Err(NanoDBError)` - If there was an error during the removal.
+    pub async fn remove(&mut self, key: &str) -> Result<(), NanoDBError> {
+        let write_guard = self._write_lock().await;
+        let write_guard_value: Value = write_guard.clone();
+        let mut tree = WriteGuardedTree::new(write_guard, write_guard_value);
+        tree.remove(key)?;
+        Ok(())
+    }
+
     /// Inserts a Tree (other) into the JSON data of the NanoDB instance.
     /// It does so by respecting the path of the other Tree instance.
     /// Current value at the path is replaced by the value of the other Tree instance.
@@ -268,5 +286,18 @@ mod tests {
                 .inner(),
             json!("nested_value_2")
         );
+    }
+
+    #[tokio::test]
+    async fn test_tree_remove() {
+        let mut db = NanoDB::new_from(
+            "/path/to/file.json",
+            r#"{"key": {"nested_key": "nested_value"}}"#,
+        )
+        .unwrap();
+        let mut tree = db.data().await.get("key").unwrap();
+        tree.remove("nested_key").unwrap();
+        db.insert_tree(tree).await.unwrap();
+        assert_eq!(db.data().await.get("key").unwrap().inner(), json!({}));
     }
 }
