@@ -11,12 +11,12 @@
 //! * **Thread Safety**: NanoDB is thread-safe, ensuring that it can be used in multi-threaded applications.
 
 //! ## Trees
-//! NanoDB knows three different types of trees:
-//! * **Tree**: A struct representing a read-only tree. This struct contains a clone of the DB's JSON value and a path. The JSON value is the actual data of the tree, and the path is the path to the current location in the tree.
-//! * **ReadGuardedTree**: A struct representing a read-guarded tree. This struct contains a read lock guard and a tree. The read lock guard ensures that the tree cannot be modified by other threads while it is being read.
-//! * **WriteGuardedTree**: A struct representing a write-guarded tree. This struct contains a write lock guard and a tree. The write lock guard ensures that the tree cannot be modified by other threads while it is being written to.
+//! NanoDB distinguishes three specialized types of trees, each designed to interact with JSON data efficiently and safely within different contexts:
+//! * **Tree**: This structure encapsulates a cloned subtree of the original JSON data, allowing read-only access. The clone represents a specific segment of the original data, pinpointed by a designated path within the JSON structure. This enables focused access to a discrete portion of the data, facilitating operations on this subset without affecting the rest of the database's data.
+//! * **ReadGuardedTree**: Building upon the basic Tree structure, a ReadGuardedTree includes a read lock mechanism. This enhancement permits concurrent read operations by multiple threads while guaranteeing that the data remains unchanged during these operations. The mechanism allows for multiple ReadGuardedTrees to exist simultaneously, provided they are only being used for reading, thus ensuring data consistency without hindering accessibility.
+//! * **WriteGuardedTree**:  Similar to a ReadGuardedTree but with a critical difference: it features a write lock to facilitate atomic write operations. This exclusive lock ensures that only one WriteGuardedTree can perform write operations at any given time, thereby preventing concurrent modifications that could lead to data inconsistencies or race conditions. This strict control mechanism is pivotal for maintaining the integrity of the database when updates are being made.
 //!
-//! This construct allows **any number of read guarded trees** or **at most one write guarded tree** at any point in time.
+//! These specialized tree structures are fundamental to NanoDB's design, enabling a balance between concurrent data access and modification safety. By delineating clear roles and access controls for each tree type, NanoDB ensures data integrity and consistency, whether in read-heavy or write-intensive scenarios.
 //! ## Examples
 //! ```rust,no_run
 //! use nanodb::{error::NanoDBError, nanodb::NanoDB, trees::tree::Tree};
