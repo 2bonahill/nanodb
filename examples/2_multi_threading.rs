@@ -26,9 +26,8 @@ async fn main() -> Result<(), NanoDBError> {
     }
 
     // Await all tasks to complete
-
     for handle in handles {
-        handle.await.unwrap(); // `await` makes sure the program waits for the task to finish
+        handle.await.unwrap();
     }
 
     db.write().await?;
