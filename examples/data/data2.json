@@ -1,0 +1,33 @@
+{
+  "crates": [
+    "tokio",
+    "serde"
+  ],
+  "key1": "Welcome!",
+  "key2": 42,
+  "key3": {
+    "key": "value",
+    "language": "Rust",
+    "name": "NanoDB",
+    "versions": [
+      1.0,
+      2.0,
+      3.0,
+      42.0
+    ]
+  },
+  "key4": [
+    2,
+    4,
+    6
+  ],
+  "key5": [
+    "Welcome",
+    "to",
+    "NanoDB"
+  ],
+  "person": {
+    "name": "Donald"
+  },
+  "some_map": {}
+}

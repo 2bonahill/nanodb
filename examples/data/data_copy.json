@@ -1,0 +1,58 @@
+{
+  "address": {
+    "city": "New York",
+    "country": "USA",
+    "key": "value",
+    "street": "5th Avenue",
+    "zip": "12345"
+  },
+  "age": 42,
+  "city": "New York",
+  "counter": 10,
+  "country": "USA",
+  "email": "johndoe@gmail.com",
+  "fruits": [
+    "apple",
+    "banana"
+  ],
+  "hobbies": [
+    "ski",
+    "tennis",
+    "reading",
+    "reading",
+    "reading",
+    "reading",
+    "reading",
+    "reading",
+    "reading",
+    "reading",
+    "reading",
+    "reading",
+    "reading",
+    "reading",
+    "reading",
+    "reading",
+    "reading",
+    "reading",
+    "reading",
+    "reading",
+    "reading",
+    "reading",
+    "reading",
+    "reading",
+    "reading",
+    "reading",
+    "reading",
+    "reading"
+  ],
+  "key": "value",
+  "new-key": "new-value",
+  "numbers": [
+    1173,
+    1174,
+    1175,
+    1176,
+    1177
+  ],
+  "writer": "hi from writer"
+}

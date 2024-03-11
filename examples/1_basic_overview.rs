@@ -1,45 +1,61 @@
 #![allow(unused_variables)]
+#![allow(dead_code)]
 
 use nanodb::{error::NanoDBError, nanodb::NanoDB, trees::tree::Tree};
-use serde_json::{Map, Value};
+use serde::Deserialize;
+use serde_json::{json, Map, Value};
+
+#[derive(Deserialize)]
+pub struct MyStruct {
+    name: String,
+    versions: Vec<f64>,
+}
 
 #[tokio::main]
 async fn main() -> Result<(), NanoDBError> {
-    let mut db = NanoDB::open("examples/data/data.json")?;
+    let json_data = r#"{
+			"key1": "Welcome!",
+			"key2": 42,
+			"key3": {
+				"name": "NanoDB",
+				"versions": [1.0, 2.0, 3.0]
+			},
+			"key4": [1, 2, 3],
+			"key5": ["Welcome", "to", "NanoDB"]
+		}"#;
 
-    // Atomic Updates
+    let mut db = NanoDB::new_from("examples/data/data2.json", json_data).unwrap();
+
+    // Basic reads (working with cloned sub-tree)
+    let text: String = db.data().await.get("key1")?.into()?;
+    let number: i64 = db.data().await.get("key2")?.into()?;
+    let object: MyStruct = db.data().await.get("key3")?.into()?;
+    let array: Vec<i64> = db.data().await.get("key4")?.into()?;
+
+    // Basic inserts
     db.insert("age", 42).await?;
-    db.insert("fruits", vec!["apple", "banana"]).await?;
-    db.update().await.get("address")?.insert("key", "value")?;
-    db.update().await.get("hobbies")?.push("reading")?;
-    db.update().await.get("numbers")?.for_each(|v| {
-        *v = Value::from(v.as_i64().unwrap() + 2i64);
+    db.insert("crates", vec!["tokio", "serde"]).await?;
+    db.insert("some_map", Map::new()).await?;
+    db.insert("person", json!({"name": "Donald"})).await?;
+    db.write().await?; // write to file if needed
+
+    // Atomic CRUD operations and advanced data manipulation
+    db.update().await.remove("age")?;
+    db.update().await.get("key3")?.insert("key", "value")?;
+    db.update().await.get("key3")?.get("versions")?.push(42.0)?;
+    db.update().await.get("key4")?.for_each(|v| {
+        *v = Value::from(v.as_i64().unwrap() * 2i64);
     })?;
-    db.write().await?;
+    db.write().await?; // write to file if needed
 
-    // Simple reading (working with a cloned sub-tree)
-    let age: i64 = db.data().await.get("age")?.into()?;
-    let city: String = db.data().await.get("address")?.get("city")?.into()?;
-    let fruit: String = db.data().await.get("fruits")?.at(1)?.into()?;
-    let address: Map<String, Value> = db.data().await.get("address")?.into()?;
-
-    // Atomic reader
-    let fruits: Vec<String> = db.read().await.get("fruits")?.into()?;
-    let first_fruit: String = db.read().await.get("fruits")?.at(0)?.into()?;
+    // Atomic reader (read() returns a read lock on the db, so it's safe to use in async functions)
+    let versions: Vec<String> = db.read().await.get("key5")?.into()?;
+    let number: i64 = db.read().await.get("key4")?.at(0)?.into()?;
 
     // Tree methods and merging
-    let mut address_tree: Tree = db.data().await.get("address")?;
-    address_tree.insert("zip", "12345")?;
-    db.insert_tree(address_tree).await?;
-    let numbers = db
-        .data()
-        .await
-        .get("numbers")?
-        .for_each(|v| {
-            *v = Value::from(v.as_i64().unwrap() + 2i64);
-        })
-        .unwrap();
-    db.insert_tree(numbers).await?;
+    let mut my_tree: Tree = db.data().await.get("key3")?;
+    my_tree.insert("language", "Rust")?;
+    db.insert_tree(my_tree).await?;
     db.write().await?;
 
     Ok(())
