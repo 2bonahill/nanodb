@@ -267,7 +267,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_merge() {
+    async fn test_insert_tree() {
         let mut db = NanoDB::new_from(
             "/path/to/file.json",
             r#"{"key": {"nested_key": "nested_value"}}"#,

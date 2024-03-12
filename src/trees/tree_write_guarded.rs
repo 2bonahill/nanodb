@@ -39,6 +39,13 @@ impl<'a> WriteGuardedTree<'a> {
         }
     }
 
+    /// Releases the write lock guard of the TreeWriteGuarded instance.
+    ///
+    /// This function consumes the TreeWriteGuarded instance and drops it, which releases the write lock guard.
+    pub fn release_lock(self) {
+        drop(self);
+    }
+
     /// Retrieves the value associated with a given key in the JSON data of the TreeWriteGuarded instance.
     ///
     /// # Arguments
@@ -105,7 +112,7 @@ impl<'a> WriteGuardedTree<'a> {
         Ok(self)
     }
 
-    /// Pushes a value to the tree if it's an array.
+    /// Pushes a value to the tree if it's currently pointing to an array.
     ///
     /// # Arguments
     ///
@@ -185,6 +192,7 @@ mod tests {
 
     use crate::{
         error::NanoDBError,
+        nanodb::NanoDB,
         trees::tree::{PathStep, Tree},
     };
     use serde_json::{json, Value};
@@ -205,6 +213,18 @@ mod tests {
         .unwrap()
     }
 
+    fn value_str() -> String {
+        r#"{
+			"key1": "value1",
+			"key2": {
+				"inner_key1": "inner_value1",
+				"inner_key2": "inner_value2"
+			},
+			"key3": [1, 2, 3]
+		}"#
+        .to_string()
+    }
+
     #[tokio::test]
     async fn test_write_guarded_new() {
         let value = value();
@@ -217,9 +237,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_write_guarded_get() {
-        let value = value();
-        let rwlock = tokio::sync::RwLock::new(value.clone());
-        let mut write_guarded = super::WriteGuardedTree::new(rwlock.write().await, value.clone());
+        let db = NanoDB::new_from("/path/to/file.json", &value_str()).unwrap();
+        let mut write_guarded = db.update().await;
+
         write_guarded.get("key2").unwrap();
         let tree = Tree::new(
             json!({
@@ -233,15 +253,53 @@ mod tests {
 
     #[tokio::test]
     async fn test_write_guarded_at() {
-        let value = value();
-        let rwlock = tokio::sync::RwLock::new(value.clone());
-        let mut write_guarded = super::WriteGuardedTree::new(rwlock.write().await, value.clone());
-        write_guarded.get("key3").unwrap();
-        write_guarded.at(1).unwrap();
+        let db = NanoDB::new_from("/path/to/file.json", &value_str()).unwrap();
+        let mut write_guarded = db.update().await;
+        write_guarded.get("key3").unwrap().at(1).unwrap();
         let tree = Tree::new(
             json!(2),
             vec![PathStep::Key("key3".to_string()), PathStep::Index(1)],
         );
         assert_eq!(write_guarded.tree.inner(), tree.inner());
+    }
+
+    #[tokio::test]
+    async fn test_write_guarded_insert() {
+        let db = NanoDB::new_from("/path/to/file.json", &value_str()).unwrap();
+        let mut write_guarded = db.update().await;
+        write_guarded
+            .get("key2")
+            .unwrap()
+            .insert("inner_key3", "inner_value3")
+            .unwrap();
+        let tree = Tree::new(
+            json!({
+                "inner_key1": "inner_value1",
+                "inner_key2": "inner_value2",
+                "inner_key3": "inner_value3"
+            }),
+            vec![PathStep::Key("key2".to_string())],
+        );
+        assert_eq!(write_guarded.tree.inner(), tree.inner());
+    }
+
+    #[tokio::test]
+    async fn test_write_guarded_remove() {
+        let db = NanoDB::new_from("/path/to/file.json", &value_str()).unwrap();
+        let mut write_guarded = db.update().await;
+        write_guarded
+            .get("key2")
+            .unwrap()
+            .remove("inner_key1")
+            .unwrap();
+        let tree = Tree::new(
+            json!({
+                "inner_key2": "inner_value2"
+            }),
+            vec![PathStep::Key("key2".to_string())],
+        );
+        assert_eq!(write_guarded.tree.inner(), tree.inner());
+
+        write_guarded.release_lock();
     }
 }

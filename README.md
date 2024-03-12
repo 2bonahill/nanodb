@@ -33,7 +33,6 @@ pub struct MyStruct {
     versions: Vec<f64>,
 }
 
-
 let json_data = r#"{
 		"key1": "Welcome!",
 		"key2": 42,

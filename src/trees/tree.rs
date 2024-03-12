@@ -184,6 +184,11 @@ impl Tree {
     /// * `Ok(Tree)` - The Tree instance itself after the insertion. This allows for method chaining.
     /// * `Err(NanoDBError::SerializationError)` - If there was an error serializing `value`.
     pub fn insert<T: Serialize>(&mut self, key: &str, value: T) -> Result<Tree, NanoDBError> {
+        // check if the inner value is an object
+        if !self.inner.is_object() {
+            return Err(NanoDBError::NotAnObject(key.to_string()));
+        }
+
         let value = serde_json::to_value(value)?;
         self.inner
             .as_object_mut()
@@ -203,6 +208,16 @@ impl Tree {
     /// * `Ok(Tree)` - A clone of the Tree instance after the removal.
     /// * `Err(NanoDBError)` - If the inner JSON value is not an object or the key does not exist.
     pub fn remove(&mut self, key: &str) -> Result<Tree, NanoDBError> {
+        // check if the inner value is an object
+        if !self.inner.is_object() {
+            return Err(NanoDBError::NotAnObject(key.to_string()));
+        }
+
+        // check if key exists
+        if !self.inner.as_object().unwrap().contains_key(key) {
+            return Err(NanoDBError::KeyNotFound(key.to_string()));
+        }
+
         self.inner.as_object_mut().unwrap().remove(key);
         Ok(self.clone())
     }
@@ -360,6 +375,11 @@ mod tests {
                 "inner_key2": "inner_value2"
             })
         );
+
+        // This one should return an error
+        let tree3 = Tree::new(value(), vec![]).get("this-key-does-not-exist");
+        assert!(tree3.is_err());
+        assert!(matches!(tree3.unwrap_err(), NanoDBError::KeyNotFound(_)));
     }
 
     #[tokio::test]
@@ -375,6 +395,12 @@ mod tests {
         tree.insert("new_key", "new_value").unwrap();
         let tree = tree.get("new_key").unwrap();
         assert_eq!(tree.inner(), serde_json::json!("new_value"));
+
+        // inserting into an array should fail
+        let tree = Tree::new(value(), vec![]);
+        let x = tree.get("key3").unwrap().insert("new_key", "new_value");
+        assert!(x.is_err());
+        assert!(matches!(x.unwrap_err(), NanoDBError::NotAnObject(_)));
     }
 
     #[tokio::test]
@@ -384,6 +410,20 @@ mod tests {
         let x = tree.get("key1");
         assert!(x.is_err());
         assert!(matches!(x.unwrap_err(), NanoDBError::KeyNotFound(_)));
+
+        // This one should return a KeyNotFound error
+        let tree3 = Tree::new(value(), vec![]).remove("this-key-does-not-exist");
+        dbg!(&tree3);
+        assert!(tree3.is_err());
+        assert!(matches!(tree3.unwrap_err(), NanoDBError::KeyNotFound(_)));
+
+        // This one should return a NotAnObject error
+        let tree4 = Tree::new(value(), vec![])
+            .get("key3")
+            .unwrap()
+            .remove("key1");
+        assert!(tree4.is_err());
+        assert!(matches!(tree4.unwrap_err(), NanoDBError::NotAnObject(_)));
     }
 
     #[tokio::test]
