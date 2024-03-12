@@ -127,6 +127,7 @@ impl<'a> WriteGuardedTree<'a> {
         self.merge()?;
         Ok(self)
     }
+
     /// Applies a function to each element of the inner array of the tree.
     ///
     /// # Arguments
@@ -188,16 +189,11 @@ impl<'a> WriteGuardedTree<'a> {
 #[cfg(test)]
 mod tests {
 
-    use std::path::Path;
-
     use crate::{
-        error::NanoDBError,
         nanodb::NanoDB,
         trees::tree::{PathStep, Tree},
     };
     use serde_json::{json, Value};
-
-    use super::WriteGuardedTree;
 
     fn value() -> Value {
         serde_json::from_str(
