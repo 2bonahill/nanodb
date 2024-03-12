@@ -76,6 +76,16 @@
 //!     db.insert_tree(my_tree).await?;
 //!     db.write().await?;
 //!
+//! 	// Advanced write locks
+//!     let mut write_lock = db.update().await;
+//!     write_lock.insert("key1", "Welcome to NanoDB")?;
+//!     write_lock.insert("key1", "Welcome to NanoDB again")?;
+//!     write_lock.release_lock(); // release the lock manually to avoid deadlocks
+//!     let mut another_write_lock = db.update().await;
+//!     assert_eq!(
+//!         another_write_lock.get("key1")?.into::<String>().unwrap(),
+//!         "Welcome to NanoDB again"
+//!     );
 //!     Ok(())
 //! }
 //! ```
