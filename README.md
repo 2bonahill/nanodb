@@ -53,7 +53,7 @@ let object: MyStruct = db.data().await.get("key3")?.into()?;
 let array: Vec<i64> = db.data().await.get("key4")?.into()?;
 
 // Basic inserts
-db.insert("age", 42).await?;
+db.insert("age", 42).await?; // shorthand for db.update().await.insert("age", 42)?;
 db.insert("crates", vec!["tokio", "serde"]).await?;
 db.insert("some_map", Map::new()).await?;
 db.insert("person", json!({"name": "Donald"})).await?;

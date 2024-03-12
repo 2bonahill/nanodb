@@ -33,7 +33,7 @@ async fn main() -> Result<(), NanoDBError> {
     let array: Vec<i64> = db.data().await.get("key4")?.into()?;
 
     // Basic inserts
-    db.insert("age", 42).await?;
+    db.insert("age", 42).await?; // shorthand for db.update().await.insert("age", 42)?;
     db.insert("crates", vec!["tokio", "serde"]).await?;
     db.insert("some_map", Map::new()).await?;
     db.insert("person", json!({"name": "Donald"})).await?;
@@ -58,7 +58,7 @@ async fn main() -> Result<(), NanoDBError> {
     db.insert_tree(my_tree).await?;
     db.write().await?;
 
-    // Advanced write locks
+    // Advanced Write locks
     let mut write_lock = db.update().await;
     write_lock.insert("key1", "Welcome to NanoDB")?;
     write_lock.insert("key1", "Welcome to NanoDB again")?;
