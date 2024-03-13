@@ -89,7 +89,6 @@
 //!     Ok(())
 //! }
 //! ```
-
 pub mod error;
 pub mod nanodb;
 pub mod trees;
