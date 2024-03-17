@@ -20,3 +20,9 @@ jobs:
       run: cargo build --verbose
     - name: Run tests
       run: cargo test --verbose
+    - name : Run clippy
+      run: cargo clippy --verbose
+    - name: Run example 1
+      run: cargo run --example 1_basic_overview
+    - name: Rune example 2
+      run: cargo run --example 2_multi_threading
