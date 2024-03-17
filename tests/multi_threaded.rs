@@ -30,7 +30,8 @@ async fn async_tests() -> Result<(), NanoDBError> {
         handle.await.unwrap();
     }
 
-    db.write().await?;
+    // check counter value
+    assert_eq!(db.data().await.get("counter")?.into::<i64>()?, 10);
 
     Ok(())
 }
