@@ -153,7 +153,7 @@ impl Tree {
     /// * `Ok(T)` - The JSON value converted into the specified type.
     /// * `Err(NanoDBError)` - If there was an error during the conversion.
     pub fn into<T: for<'de> Deserialize<'de>>(self) -> Result<T, NanoDBError> {
-        serde_json::from_value(self.inner).map_err(Into::into)
+        serde_json::from_value(self.inner).map_err(|e| NanoDBError::TypeMismatch(e.to_string()))
     }
 
     /// Returns the type of the inner value of the tree.
@@ -413,7 +413,6 @@ mod tests {
 
         // This one should return a KeyNotFound error
         let tree3 = Tree::new(value(), vec![]).remove("this-key-does-not-exist");
-        dbg!(&tree3);
         assert!(tree3.is_err());
         assert!(matches!(tree3.unwrap_err(), NanoDBError::KeyNotFound(_)));
 
@@ -456,5 +455,18 @@ mod tests {
     async fn test_tree_len() {
         let tree = Tree::new(value(), vec![]).get("key3").unwrap();
         assert_eq!(tree.len().unwrap(), 3);
+    }
+
+    #[tokio::test]
+    async fn test_tree_into() {
+        let tree = Tree::new(value(), vec![]).get("key3").unwrap();
+        let arr: Vec<i64> = tree.into().unwrap();
+        assert_eq!(arr, vec![1, 2, 3]);
+
+        // the following one must fail (type mismatch)
+        let tree = Tree::new(value(), vec![]).get("key3").unwrap();
+        let x: Result<Vec<String>, NanoDBError> = tree.into();
+        assert!(x.is_err());
+        assert!(matches!(x.unwrap_err(), NanoDBError::TypeMismatch(_)));
     }
 }

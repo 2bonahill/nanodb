@@ -25,6 +25,8 @@ pub enum NanoDBError {
     IndexOutOfBounds(usize),
     #[error("Invalid JSON path")]
     InvalidJSONPath,
+    #[error("Type mismatch: {0}")]
+    TypeMismatch(String),
     // Default error
     #[error("An error occurred")]
     DefaultError,
