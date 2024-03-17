@@ -1,19 +1,16 @@
 # NanoDB
-NanoDB is a simple, lightweight, and easy-to-use JSON database for Rust. It is designed to be used in small to medium-sized projects where a full-fledged database is not necessary. It is built on top of the serde_json crate and provides a simple and easy-to-use API for reading and writing JSON data.
+NanoDB is a simple, lightweight, and easy-to-use JSON database for Rust. It is designed to be used in small to medium-sized projects where a full-fledged database is not necessary. It provides a simple and easy-to-use API for reading and writing JSON data.
 NanoDB provides the following features:
 * **Simple API**: Easy interface for JSON data manipulation.
 * **Atomic Operations**: Guarantees data consistency with atomic reads and writes.
 * **Tree Structures**: Supports focused access and modifications with specialized trees.
-* **Error Handling**: Comprehensive management of errors.
 * **Asynchronous I/O**: Enhances performance with non-blocking I/O.
-* **Lightweight**: Minimal dependencies, ideal for small to medium projects.
-* **JSON Support**: Utilizes `serde_json` for efficient serialization/deserialization.
 * **Thread Safety**: Safe for multi-threaded use.
 
 
 ## Trees
 NanoDB distinguishes three specialized types of trees, each designed to interact with JSON data efficiently and safely within different contexts:
-* **Tree**: This structure encapsulates a cloned subtree of the original JSON data, allowing read-only access. The clone represents a specific segment of the original data, pinpointed by a designated path within the JSON structure. This enables focused access to a discrete portion of the data, facilitating operations on this subset without affecting the rest of the database's data. NanoDB allows to merge trees back into the main database if wanted.
+* **Tree**: This structure encapsulates a cloned subtree of the original JSON data. The clone represents a specific segment of the original data, pinpointed by a designated path within the JSON structure. This enables focused access to a discrete portion of the data, facilitating operations on this subset without affecting the rest of the database's data. NanoDB allows to merge trees back into the main database if wanted.
 * **ReadGuardedTree**: Building upon the basic Tree structure, a ReadGuardedTree includes a read lock mechanism. This enhancement permits concurrent read operations by multiple threads while guaranteeing that the data remains unchanged during these operations. The mechanism allows for multiple ReadGuardedTrees to exist simultaneously, provided they are only being used for reading, thus ensuring data consistency without hindering accessibility.
 * **WriteGuardedTree**:  Similar to a ReadGuardedTree but with a critical difference: it features a write lock to facilitate atomic write operations. This exclusive lock ensures that only one WriteGuardedTree can perform write operations at any given time, thereby preventing concurrent modifications that could lead to data inconsistencies or race conditions. This strict control mechanism is pivotal for maintaining the integrity of the database when updates are being made.
 

@@ -1,6 +1,6 @@
 [package]
 name = "nanodb"
-version = "0.4.2"
+version = "0.4.3"
 keywords = ["database", "storage", "embedded", "json"]
 categories = ["database", "database-implementations", "data-structures"]
 description = "A simple, embedded, JSON-based database"
