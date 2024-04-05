@@ -222,6 +222,34 @@ impl Tree {
         Ok(self.clone())
     }
 
+    /// Removes an element at a specific index from the array stored in the `inner` field of the `Tree` instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `index` - The index at which to remove the element.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Tree)` - A clone of the `Tree` instance after the removal.
+    /// * `Err(NanoDBError)` - If the `inner` field is not an array or the index is out of bounds.
+    /// # Errors
+    ///
+    /// This function will return an error if the `inner` field is not an array or the index is out of bounds.
+    pub fn remove_at(&mut self, index: usize) -> Result<Tree, NanoDBError> {
+        // check if the inner value is an array
+        if !self.inner.is_array() {
+            return Err(NanoDBError::NotAnArray(self.path_string()));
+        }
+
+        // check if index is out of bounds
+        if index >= self.inner.as_array().unwrap().len() {
+            return Err(NanoDBError::IndexOutOfBounds(index));
+        }
+
+        self.inner.as_array_mut().unwrap().remove(index);
+        Ok(self.clone())
+    }
+
     /// Merges a Tree (other) into the JSON data of the NanoDB instance
     /// It does so by respecting the path of the other Tree instance.
     ///
@@ -423,6 +451,34 @@ mod tests {
             .remove("key1");
         assert!(tree4.is_err());
         assert!(matches!(tree4.unwrap_err(), NanoDBError::NotAnObject(_)));
+    }
+
+    #[tokio::test]
+    async fn test_tree_remove_at() {
+        let mut tree = Tree::new(value(), vec![]).get("key3").unwrap();
+
+        // assert index out of bounds error
+        let out_of_bounds = tree.remove_at(4);
+        assert!(out_of_bounds.is_err());
+        assert!(matches!(
+            out_of_bounds.unwrap_err(),
+            NanoDBError::IndexOutOfBounds(_)
+        ));
+
+        // remove the first element
+        tree.remove_at(0).unwrap();
+        assert_eq!(tree.inner(), json!([2, 3]));
+
+        // This one must be out of bounds now
+        let x = tree.at(3);
+        assert!(x.is_err());
+        assert!(matches!(x.unwrap_err(), NanoDBError::IndexOutOfBounds(_)));
+
+        // test not an array error
+        let mut tree = Tree::new(value(), vec![]).get("key1").unwrap();
+        let tree2 = tree.remove_at(0);
+        assert!(tree2.is_err());
+        assert!(matches!(tree2.unwrap_err(), NanoDBError::NotAnArray(_)));
     }
 
     #[tokio::test]

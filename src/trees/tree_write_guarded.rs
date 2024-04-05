@@ -112,6 +112,22 @@ impl<'a> WriteGuardedTree<'a> {
         Ok(self)
     }
 
+    /// Removes an element at a specific index from the array stored in the `Tree` instance of the `TreeWriteGuarded` and then merges the result into the current JSON value of the write lock guard.
+    ///
+    /// # Arguments
+    ///
+    /// * `index` - The index at which to remove the element.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(&mut Self)` - The `TreeWriteGuarded` instance itself after the removal and merge. This allows for method chaining.
+    /// * `Err(NanoDBError)` - If there was an error during the removal or the merge.
+    pub fn remove_at(&mut self, index: usize) -> Result<&mut Self, NanoDBError> {
+        self.tree = self.tree.clone().remove_at(index)?;
+        self.merge()?;
+        Ok(self)
+    }
+
     /// Pushes a value to the tree if it's currently pointing to an array.
     ///
     /// # Arguments
@@ -294,6 +310,17 @@ mod tests {
             }),
             vec![PathStep::Key("key2".to_string())],
         );
+        assert_eq!(write_guarded.tree.inner(), tree.inner());
+
+        write_guarded.release_lock();
+    }
+
+    #[tokio::test]
+    async fn test_write_guarded_remove_at() {
+        let db = NanoDB::new_from("/path/to/file.json", &value_str()).unwrap();
+        let mut write_guarded = db.update().await;
+        write_guarded.get("key3").unwrap().remove_at(1).unwrap();
+        let tree = Tree::new(json!([1, 3]), vec![PathStep::Key("key3".to_string())]);
         assert_eq!(write_guarded.tree.inner(), tree.inner());
 
         write_guarded.release_lock();
